@@ -11,3 +11,22 @@ dependencies = [
     "pymongo>=4.15.4",
     "redis>=7.1.0",
 ]
+
+[dependency-groups]
+dev = [
+    "black>=25.11.0",
+    "isort>=7.0.0",
+    "ruff>=0.14.6",
+    "taskipy>=1.14.1",
+]
+
+[tool.taskipy.tasks]
+lint = "ruff check src --fix && black src && isort src"
+typecheck = "pyright src"
+run_dev = "fastapi dev src/main.py"
+
+[tool.isort]
+profile = "black"
+line_length = 88
+known_first_party = ["soat.eleven.fastfood.pagamento"]
+combine_as_imports = true
