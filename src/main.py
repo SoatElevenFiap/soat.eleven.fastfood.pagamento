@@ -1,3 +1,4 @@
+import pytomlpp
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -7,6 +8,7 @@ from modules.shared.exceptions.handlers.application_exception_handler import (
     application_exception_handler,
 )
 from modules.shared.middleware.correlation_middleware import CorrelationMiddleware
+from modules.shared.providers.settings_provider import SettingsProvider
 
 app = FastAPI()
 API.initialize(app)
@@ -24,5 +26,10 @@ app.add_middleware(
 
 
 @app.get("/")
-async def health_check():
-    return {"message": "Microservice Payment is running"}
+async def health_check(settings: SettingsProvider):
+    project_info = pytomlpp.load("pyproject.toml")
+    return {
+        "message": "Microservice Payment is running",
+        "version": project_info["project"]["version"],
+        "environment": settings.environment,
+    }
