@@ -1,6 +1,7 @@
-from typing import Optional
-from pydantic import BaseModel
 from datetime import datetime
+from typing import Optional
+
+from pydantic import BaseModel
 
 from modules.external_provider.enums import ExternalProvider
 from modules.payment.enums import PaymentStatus

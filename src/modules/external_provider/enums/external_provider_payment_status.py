@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class ExternalProviderPaymentStatus(Enum, str):
+class ExternalProviderPaymentStatus(str, Enum):
     APPROVED = "approved"
     REJECTED = "rejected"
     PENDING = "pending"

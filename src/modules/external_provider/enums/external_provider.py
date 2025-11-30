@@ -1,5 +1,5 @@
 from enum import Enum
 
 
-class ExternalProvider(Enum, str):
+class ExternalProvider(str, Enum):
     MERCADOPAGO = "mercadopago"
