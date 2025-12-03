@@ -6,6 +6,7 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     environment: Optional[str] = None
     redis_connection_string: Optional[str] = None
+    mongo_connection_string: Optional[str] = None
 
     def is_development(self) -> bool:
         return self.environment == "development"

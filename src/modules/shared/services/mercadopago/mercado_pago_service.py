@@ -22,5 +22,6 @@ class MercadoPagoService(ExternalProviderAdapter):
     async def process_external_feedback(
         self, notification: PaymentNotificationDataclass
     ):
-        self.logger.info(f"Processing external feedback: {notification}")
+        self.logger.title_box(f"Received notification from Mercado Pago")
+        self.logger.dict_to_table(notification.model_dump())
         return True
