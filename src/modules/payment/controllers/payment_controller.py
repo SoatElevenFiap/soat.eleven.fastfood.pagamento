@@ -1,13 +1,17 @@
 from http import HTTPMethod
 
+from fastapi import HTTPException
+
 from modules.payment.dtos import CreatePaymentOrderRequestDto
 from modules.payment.entities import PaymentEntity
 from modules.payment.providers.create_payment_order_service import (
     CreatePaymentOrderServiceProvider,
 )
+from modules.payment.providers.get_payment_service_provider import (
+    GetPaymentServiceProvider,
+)
 from modules.shared.adapters import APIController
 from modules.shared.decorators import API
-from modules.shared.providers.redis_service_provider import RedisServiceProvider
 
 
 @API.controller("payment", "Pagamento")
@@ -20,9 +24,13 @@ class PaymentController(APIController):
     ):
         return await create_payment_order_service.process(request)
 
-    @API.route("/", method=HTTPMethod.GET)
+    @API.route("/", method=HTTPMethod.GET, response_model=PaymentEntity)
     async def get_payment(
         self,
-        redis_service: RedisServiceProvider,
+        id: str,
+        get_payment_service: GetPaymentServiceProvider,
     ):
-        return redis_service.get_value("payment", "No payment found")
+        payment = await get_payment_service.process(id)
+        if not payment:
+            raise HTTPException(status_code=404, detail="Payment not found")
+        return payment
