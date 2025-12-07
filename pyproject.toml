@@ -7,6 +7,7 @@ requires-python = ">=3.12"
 dependencies = [
     "fastapi[standard]>=0.122.0",
     "loguru>=0.7.3",
+    "mercadopago>=2.3.0",
     "pydantic-settings>=2.12.0",
     "pymongo>=4.15.4",
     "pytomlpp>=1.1.0",

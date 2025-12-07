@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class PaymentStatus(Enum, str):
+class PaymentStatus(str, Enum):
     PENDING = "pending"
     PAID = "paid"
     FAILED = "failed"

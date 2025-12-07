@@ -1,24 +1,24 @@
-import uuid
-from hashlib import sha256
 from http import HTTPMethod
 
+from modules.payment.dtos import CreatePaymentOrderRequestDto
+from modules.payment.entities import PaymentEntity
+from modules.payment.providers.create_payment_order_service import (
+    CreatePaymentOrderServiceProvider,
+)
 from modules.shared.adapters import APIController
 from modules.shared.decorators import API
 from modules.shared.providers.redis_service_provider import RedisServiceProvider
 
 
-@API.controller("payment")
+@API.controller("payment", "Pagamento")
 class PaymentController(APIController):
-    ## TESTES NO REDIS PROVISÓRIOS!
-
-    @API.route("/", method=HTTPMethod.POST)
+    @API.route("/", method=HTTPMethod.POST, response_model=PaymentEntity)
     async def create_payment(
         self,
-        redis_service: RedisServiceProvider,
+        request: CreatePaymentOrderRequestDto,
+        create_payment_order_service: CreatePaymentOrderServiceProvider,
     ):
-        payment_id = sha256(uuid.uuid4().hex.encode()).hexdigest()
-        redis_service.set_value("payment", payment_id)
-        return payment_id
+        return await create_payment_order_service.process(request)
 
     @API.route("/", method=HTTPMethod.GET)
     async def get_payment(
