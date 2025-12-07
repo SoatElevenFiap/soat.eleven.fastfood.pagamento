@@ -2,7 +2,7 @@ from pydantic import BaseModel
 
 
 class PaymentNotificationDataclass(BaseModel):
-    id: str
+    id: int
     action: str
     api_version: str
     data: dict
