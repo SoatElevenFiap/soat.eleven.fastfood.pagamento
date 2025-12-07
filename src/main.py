@@ -25,7 +25,7 @@ app.add_middleware(
 )
 
 
-@app.get("/")
+@app.get("/health-check")
 async def health_check(settings: SettingsProvider):
     project_info = pytomlpp.load("pyproject.toml")
     return {
