@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import List, Optional
 
 from modules.client.entities.client_entity import ClientEntity
 from modules.shared.adapters import RepositoryAdapter
@@ -31,3 +31,7 @@ class ClientRepository(RepositoryAdapter):
             self.table, {"notification_url": notification_url}
         )
         return ClientEntity(**client_document) if client_document else None
+
+    async def get_all_clients(self) -> List[ClientEntity]:
+        client_documents = await self.__mongo_service.get_all_documents(self.table)
+        return [ClientEntity(**doc) for doc in client_documents]

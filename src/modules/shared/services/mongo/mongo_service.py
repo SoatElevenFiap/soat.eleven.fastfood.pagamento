@@ -40,6 +40,22 @@ class MongoService:
         await collection.update_one(query, {"$set": document})
         return await self.get_document(collection_name, query)
 
+    async def get_all_documents(self, collection_name: str, query: dict = None) -> list[dict]:
+        collection = self.db[collection_name]
+        query = query or {}
+        if "id" in query:
+            query["_id"] = (
+                ObjectId(query["id"]) if ObjectId.is_valid(query["id"]) else query["id"]
+            )
+            del query["id"]
+        cursor = collection.find(query)
+        documents = []
+        async for document in cursor:
+            if document and "_id" in document:
+                document["_id"] = str(document["_id"])
+            documents.append(document)
+        return documents
+
     async def delete_document(self, collection_name: str, query: dict):
         collection = self.db[collection_name]
         await collection.delete_one(query)
