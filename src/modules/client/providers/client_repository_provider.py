@@ -7,9 +7,7 @@ from modules.shared.providers import MongoServiceProvider
 
 
 def client_repository_provider(mongo_service: MongoServiceProvider):
-    return ClientRepository(
-        mongo_service=mongo_service
-    )
+    return ClientRepository(mongo_service=mongo_service)
 
 
 ClientRepositoryProvider = Annotated[

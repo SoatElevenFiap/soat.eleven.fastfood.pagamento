@@ -1,5 +1,5 @@
-
 CLIENT_BASE_CACHE = "client:"
+
 
 class ClientCacheKeys:
     @staticmethod

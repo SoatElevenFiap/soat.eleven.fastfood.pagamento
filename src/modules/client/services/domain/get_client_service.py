@@ -1,5 +1,6 @@
 import json
 from typing import Optional
+
 from modules.client.constants import ClientCacheKeys
 from modules.client.entities.client_entity import ClientEntity
 from modules.client.repositories.client_repository import ClientRepository
@@ -20,6 +21,8 @@ class GetClientService(DomainService):
             return ClientEntity(**json.loads(cached_data))
         client = await self.__client_repository.get_client(client_id)
         if client:
-            self.__cache.set_value(ClientCacheKeys.client_key_for(client_id), client.model_dump_json())
+            self.__cache.set_value(
+                ClientCacheKeys.client_key_for(client_id), client.model_dump_json()
+            )
             return client
         return None
