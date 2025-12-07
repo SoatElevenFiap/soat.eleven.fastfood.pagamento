@@ -3,7 +3,9 @@ from typing import Annotated
 from fastapi import Depends
 
 from modules.shared.providers.mongo_service_provider import MongoServiceProvider
-from modules.webhook.services.domain.save_webhook_notification import SaveWebhookNotificationService
+from modules.webhook.services.domain.save_webhook_notification import (
+    SaveWebhookNotificationService,
+)
 
 
 def save_webhook_notification_service_provider(mongo_service: MongoServiceProvider):
@@ -12,4 +14,6 @@ def save_webhook_notification_service_provider(mongo_service: MongoServiceProvid
     )
 
 
-SaveWebhookNotificationServiceProvider = Annotated[SaveWebhookNotificationService, Depends(save_webhook_notification_service_provider)]
+SaveWebhookNotificationServiceProvider = Annotated[
+    SaveWebhookNotificationService, Depends(save_webhook_notification_service_provider)
+]
