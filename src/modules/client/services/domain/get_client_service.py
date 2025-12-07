@@ -14,12 +14,12 @@ class GetClientService(DomainService):
         super().__init__(context=GetClientService.__name__)
 
     async def process(self, client_id: str) -> Optional[ClientEntity]:
-        self.logger.info(f"Creating payment order...")
+        self.logger.info(f"Getting client: {client_id}")
         cached_data = self.__cache.get_value(ClientCacheKeys.client_key_for(client_id))
         if cached_data:
             return ClientEntity(**json.loads(cached_data))
         client = await self.__client_repository.get_client(client_id)
         if client:
-            await self.__cache.set_value(ClientCacheKeys.client_key_for(client_id), client.model_dump_json())
+            self.__cache.set_value(ClientCacheKeys.client_key_for(client_id), client.model_dump_json())
             return client
         return None
