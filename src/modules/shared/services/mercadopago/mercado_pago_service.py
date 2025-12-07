@@ -62,7 +62,6 @@ class MercadoPagoService(ExternalProviderAdapter):
             else ExternalProviderPaymentStatus.ERROR
         )
 
-        self.logger.dict_to_table(preference["response"])
         await self.add_external_provider_request(
             request.end_to_end_id,
             preference["response"]["id"],
@@ -100,8 +99,6 @@ class MercadoPagoService(ExternalProviderAdapter):
     ) -> ExternalOrderPaymentResultModel:
         self.logger.title_box("Processing external feedback from Mercado Pago")
         payment = self.__sdk.payment().get(notification.data["id"])
-
-        # self.logger.dict_to_table(payment["response"])
 
         return ExternalOrderPaymentResultModel(
             end_to_end_id=payment["response"]["external_reference"],
