@@ -1,0 +1,22 @@
+services:
+  soat.eleven.fastfood.pagamento:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: soat.eleven.fastfood.pagamento
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - UVICORN_WORKERS=4
+      - UVICORN_HOST=0.0.0.0
+      - UVICORN_PORT=8000
+      - UVICORN_LOG_LEVEL=info
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health-check').read()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
