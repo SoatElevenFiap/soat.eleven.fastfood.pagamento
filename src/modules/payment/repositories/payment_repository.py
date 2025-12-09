@@ -26,6 +26,16 @@ class PaymentRepository(RepositoryAdapter):
         )
         return PaymentEntity(**payment_document) if payment_document else None
 
+    async def change_payment_status(
+        self, payment_id: str, status: PaymentStatus
+    ) -> Optional[PaymentEntity]:
+        payment_document = await self.__mongo_service.update_document(
+            self.table,
+            {"id": payment_id},
+            {"status": status, "updated_at": datetime.now(UTC)},
+        )
+        return PaymentEntity(**payment_document) if payment_document else None
+
     async def get_payment(self, payment_id: str) -> Optional[PaymentEntity]:
         payment_document = await self.__mongo_service.get_document(
             self.table, {"id": payment_id}

@@ -1,12 +1,10 @@
 from pydantic import BaseModel
 
 from modules.external_provider.enums import ExternalProvider
-from modules.external_provider.enums.external_provider_payment_status import (
-    ExternalProviderPaymentStatus,
-)
+from modules.payment.enums import PaymentStatus
 
 
 class ExternalOrderPaymentResultModel(BaseModel):
     end_to_end_id: str
-    status: ExternalProviderPaymentStatus
+    status: PaymentStatus
     provider: ExternalProvider

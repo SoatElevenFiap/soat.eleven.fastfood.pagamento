@@ -4,9 +4,6 @@ from pydantic import BaseModel
 from modules.external_provider.adapters import ExternalProviderAdapter
 from modules.external_provider.entities import ExternalOrderEntity
 from modules.external_provider.enums import ExternalProvider
-from modules.external_provider.enums.external_provider_payment_status import (
-    ExternalProviderPaymentStatus,
-)
 from modules.external_provider.models import (
     CreateExternalOrderModel,
     ExternalOrderPaymentResultModel,
@@ -14,10 +11,12 @@ from modules.external_provider.models import (
 from modules.external_provider.repositories.external_provider_repository import (
     ExternalProviderRepository,
 )
+from modules.payment.enums import PaymentStatus
 from modules.shared.constants import ExceptionConstants
 from modules.shared.exceptions.domain_exception import DomainException
 from modules.shared.services.logger.logger_service import LoggerService
 from modules.shared.services.mercadopago.dataclasses import PaymentNotificationDataclass
+from modules.shared.services.mercadopago.enums.mercado_pago_payment_status import MercadoPagoPaymentStatus
 
 
 class MercadoPagoCredentials(BaseModel):
@@ -58,9 +57,9 @@ class MercadoPagoService(ExternalProviderAdapter):
             }
         )
         status = (
-            ExternalProviderPaymentStatus.PENDING
+            PaymentStatus.PENDING
             if preference["status"] == 201
-            else ExternalProviderPaymentStatus.ERROR
+            else PaymentStatus.ERROR
         )
 
         await self.add_external_provider_request(
@@ -70,7 +69,7 @@ class MercadoPagoService(ExternalProviderAdapter):
             preference,
         )
 
-        if status == ExternalProviderPaymentStatus.ERROR:
+        if status == PaymentStatus.ERROR:
             self.logger.error("Error creating order")
             raise DomainException(ExceptionConstants.INVALID_EXTERNAL_PROVIDER, "Error creating order")
 
@@ -102,13 +101,8 @@ class MercadoPagoService(ExternalProviderAdapter):
         payment = self.__sdk.payment().get(notification.data["id"])
         self.logger.info(f"Received mercado pago payment notification")
         self.logger.title_box_warning(f"EID: {payment["response"]["external_reference"]} -> Status: {payment["response"]["status"]}")
-        self.logger.dict_to_table(payment["response"])
         return ExternalOrderPaymentResultModel(
             end_to_end_id=payment["response"]["external_reference"],
-            status=(
-                ExternalProviderPaymentStatus.APPROVED
-                if payment["response"]["status"] == "approved"
-                else ExternalProviderPaymentStatus.REJECTED
-            ),
+            status=MercadoPagoPaymentStatus.to_payment_status(payment["response"]["status"]),
             provider=ExternalProvider.MERCADOPAGO,
         )
