@@ -1,4 +1,9 @@
+from typing import Optional
+from modules.shared.constants import ExceptionCode
+
+
 class DomainException(Exception):
-    def __init__(self, message: str):
+    def __init__(self, code: ExceptionCode, message: Optional[str] = None):
         self.message = message
-        super().__init__(self.message)
+        self.code = code
+        super().__init__(message)

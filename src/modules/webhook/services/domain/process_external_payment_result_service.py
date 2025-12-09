@@ -6,6 +6,7 @@ from modules.payment.services.domain.approve_payment_service import (
     ApprovePaymentService,
 )
 from modules.shared.adapters import DomainService
+from modules.shared.constants import ExceptionConstants
 from modules.shared.exceptions.domain_exception import DomainException
 
 
@@ -30,5 +31,6 @@ class ProcessExternalPaymentResultService(DomainService):
                     f"Invalid external provider payment status: {result.status}"
                 )
                 raise DomainException(
+                    ExceptionConstants.INVALID_EXTERNAL_PROVIDER,
                     f"Invalid external provider payment status: {result.status}"
                 )

@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from typing import Optional
 
 from modules.payment.entities import PaymentEntity
@@ -21,7 +22,7 @@ class PaymentRepository(RepositoryAdapter):
 
     async def make_payment_paid(self, payment_id: str) -> Optional[PaymentEntity]:
         payment_document = await self.__mongo_service.update_document(
-            self.table, {"id": payment_id}, {"status": PaymentStatus.PAID}
+            self.table, {"id": payment_id}, {"status": PaymentStatus.PAID, "updated_at": datetime.now(UTC)}
         )
         return PaymentEntity(**payment_document) if payment_document else None
 

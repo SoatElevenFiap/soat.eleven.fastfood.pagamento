@@ -5,8 +5,11 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from modules.shared.decorators.api.api import API
 from modules.shared.exceptions.application_exception import ApplicationException
-from modules.shared.exceptions.handlers.application_exception_handler import (
+from modules.shared.exceptions.domain_exception import DomainException
+from modules.shared.exceptions.handlers import (
     application_exception_handler,
+    domain_exception_handler,
+    global_exception_handler,
 )
 from modules.shared.middleware.correlation_middleware import CorrelationMiddleware
 from modules.shared.providers.settings_provider import SettingsProvider
@@ -14,8 +17,9 @@ from modules.shared.providers.settings_provider import SettingsProvider
 app = FastAPI()
 API.initialize(app)
 
-
+app.add_exception_handler(DomainException, domain_exception_handler)
 app.add_exception_handler(ApplicationException, application_exception_handler)
+app.add_exception_handler(Exception, global_exception_handler)
 app.add_middleware(CorrelationMiddleware)
 app.add_middleware(
     CORSMiddleware,

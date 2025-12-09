@@ -14,6 +14,7 @@ from modules.external_provider.models import (
 from modules.external_provider.repositories.external_provider_repository import (
     ExternalProviderRepository,
 )
+from modules.shared.constants import ExceptionConstants
 from modules.shared.exceptions.domain_exception import DomainException
 from modules.shared.services.logger.logger_service import LoggerService
 from modules.shared.services.mercadopago.dataclasses import PaymentNotificationDataclass
@@ -71,7 +72,7 @@ class MercadoPagoService(ExternalProviderAdapter):
 
         if status == ExternalProviderPaymentStatus.ERROR:
             self.logger.error("Error creating order")
-            raise DomainException("Error creating order")
+            raise DomainException(ExceptionConstants.INVALID_EXTERNAL_PROVIDER, "Error creating order")
 
         self.logger.info("Order successfully created")
         return ExternalOrderEntity(
@@ -99,7 +100,9 @@ class MercadoPagoService(ExternalProviderAdapter):
     ) -> ExternalOrderPaymentResultModel:
         self.logger.title_box("Processing external feedback from Mercado Pago")
         payment = self.__sdk.payment().get(notification.data["id"])
-
+        self.logger.info(f"Received mercado pago payment notification")
+        self.logger.title_box_warning(f"EID: {payment["response"]["external_reference"]} -> Status: {payment["response"]["status"]}")
+        self.logger.dict_to_table(payment["response"])
         return ExternalOrderPaymentResultModel(
             end_to_end_id=payment["response"]["external_reference"],
             status=(

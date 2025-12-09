@@ -50,6 +50,4 @@ class ProccessMercadoPagoMessageService(ApplicationService):
         result_status = await self.mercado_pago_service.process_external_feedback(
             payment_notification
         )
-        self.logger.info(f"External provider payment result status: {result_status}")
-
         await self.process_external_payment_result_service.process(result_status)

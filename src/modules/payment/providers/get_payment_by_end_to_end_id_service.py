@@ -1,0 +1,26 @@
+from typing import Annotated
+
+from fastapi import Depends
+
+from modules.payment.providers.payment_repository_provider import (
+    PaymentRepositoryProvider,
+)
+from modules.payment.services.domain.get_payment_by_end_to_end_id_service import (
+    GetPaymentByEndToEndIdService,
+)
+from modules.shared.providers import RedisServiceProvider
+
+
+def get_payment_by_end_to_end_id_service_provider(
+    redis_service: RedisServiceProvider,
+    payment_repository: PaymentRepositoryProvider,
+):
+    return GetPaymentByEndToEndIdService(
+        cache=redis_service, payment_repository=payment_repository
+    )
+
+
+GetPaymentByEndToEndIdServiceProvider = Annotated[
+    GetPaymentByEndToEndIdService,
+    Depends(get_payment_by_end_to_end_id_service_provider),
+]

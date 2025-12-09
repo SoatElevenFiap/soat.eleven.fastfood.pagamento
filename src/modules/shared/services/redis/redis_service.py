@@ -41,7 +41,6 @@ class RedisService(CacheAdapter):
             self.__logger.info(
                 f"Setting value in cache for key: <yellow>{key}</yellow> with expire: <yellow>{expire_in_milliseconds}</yellow> milliseconds."
             )
-            self.__logger.info(value)
             client = self.__get_client()
             if client is None:
                 self.__logger.error(

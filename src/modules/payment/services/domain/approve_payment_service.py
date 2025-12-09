@@ -7,6 +7,7 @@ from modules.payment.constants import PaymentCacheKeys
 from modules.payment.repositories.payment_repository import PaymentRepository
 from modules.shared.adapters import DomainService
 from modules.shared.adapters.cache_adapter import CacheAdapter
+from modules.shared.constants import ExceptionConstants
 from modules.shared.exceptions.domain_exception import DomainException
 
 
@@ -29,7 +30,7 @@ class ApprovePaymentService(DomainService):
         )
         if not payment:
             self.logger.error(f"Payment not found e2e_id: {end_to_end_id}")
-            raise DomainException(f"Payment not found e2e_id: {end_to_end_id}")
+            raise DomainException(ExceptionConstants.PAYMENT_NOT_FOUND, f"Payment not found e2e_id: {end_to_end_id}")
         payment = await self.__payment_repository.make_payment_paid(payment.id)
         if payment:
             payment_dict = payment.model_dump(mode="json")

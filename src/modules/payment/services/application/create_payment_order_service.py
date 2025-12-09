@@ -1,4 +1,3 @@
-from fastapi import HTTPException
 
 from modules.client.providers.get_client_service_provider import (
     GetClientServiceProvider,
@@ -8,11 +7,13 @@ from modules.external_provider.providers.get_external_provider_service_provider 
     GetExternalProviderServiceProvider,
 )
 from modules.payment.dtos import CreatePaymentOrderRequestDto
-from modules.payment.entities import PaymentEntity
+from modules.payment.dtos.create_payment_order_response_dto import CreatePaymentOrderResponseDto
 from modules.payment.providers.create_payment_service import (
     CreatePaymentServiceProvider,
 )
 from modules.shared.adapters import ApplicationService
+from modules.shared.constants import ExceptionConstants
+from modules.shared.exceptions.domain_exception import DomainException
 
 
 class CreatePaymentOrderService(ApplicationService):
@@ -27,14 +28,14 @@ class CreatePaymentOrderService(ApplicationService):
         self.__create_payment_service = create_payment_service
         super().__init__(context=CreatePaymentOrderService.__name__)
 
-    async def process(self, request: CreatePaymentOrderRequestDto) -> PaymentEntity:
+    async def process(self, request: CreatePaymentOrderRequestDto) -> CreatePaymentOrderResponseDto:
         self.logger.info(
             f"Creating payment order for client: {request.client_id} and end_to_end_id: {request.end_to_end_id}"
         )
         client = await self.__get_client_service.process(request.client_id)
         if not client:
             self.logger.error(f"Client not found: {request.client_id}")
-            raise HTTPException(status_code=404, detail="Client not found")
+            raise DomainException(ExceptionConstants.CLIENT_NOT_FOUND, f"Client not found for id: {request.client_id}")
         external_provider_service = await self.__get_external_provider_service.process(
             request.provider
         )
@@ -46,4 +47,4 @@ class CreatePaymentOrderService(ApplicationService):
             )
         )
         payment = await self.__create_payment_service.process(order)
-        return payment
+        return CreatePaymentOrderResponseDto.from_payment_entity(payment)
