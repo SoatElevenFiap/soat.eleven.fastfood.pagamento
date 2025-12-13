@@ -3,11 +3,17 @@ from typing import Annotated
 from fastapi import Depends
 
 from modules.client.repositories.client_repository import ClientRepository
-from modules.shared.providers import MongoServiceProvider
+from modules.shared.providers import MongoServiceProvider, CacheManagerServiceProvider
 
 
-def client_repository_provider(mongo_service: MongoServiceProvider):
-    return ClientRepository(mongo_service=mongo_service)
+def client_repository_provider(
+    mongo_service: MongoServiceProvider,
+    cache_manager_service: CacheManagerServiceProvider,
+):
+    return ClientRepository(
+        mongo_service=mongo_service,
+        cache_manager_service=cache_manager_service,
+    )
 
 
 ClientRepositoryProvider = Annotated[
