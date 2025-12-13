@@ -6,6 +6,7 @@ class ExceptionCode(NamedTuple):
     code: str
 
 class ExceptionConstants():
+    CLIENT_ALREADY_EXISTS = ExceptionCode(409, "CLIENT_ALREADY_EXISTS")
     PAYMENT_ALREADY_EXISTS = ExceptionCode(409, "PAYMENT_ALREADY_EXISTS")
     PAYMENT_NOT_FOUND = ExceptionCode(404, "PAYMENT_NOT_FOUND")
     INVALID_EXTERNAL_PROVIDER = ExceptionCode(400, "INVALID_EXTERNAL_PROVIDER")
