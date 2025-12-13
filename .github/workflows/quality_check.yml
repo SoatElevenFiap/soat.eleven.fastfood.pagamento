@@ -38,14 +38,7 @@ jobs:
         run: |
           uv run pytest src/tests/ -v \
             --cov=src \
-            --cov-report=xml \
-            --junitxml=junit-results.xml
-
-      - name: Publish test results
-        uses: EnricoMi/publish-unit-test-result-action@v2
-        if: always()
-        with:
-          files: junit-results.xml
+            --cov-report=xml
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
