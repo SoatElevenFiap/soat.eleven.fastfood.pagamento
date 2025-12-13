@@ -1,8 +1,6 @@
 from typing import Optional
 
-from modules.payment.dtos.get_payment_by_end_to_end_id_response_dto import (
-    GetPaymentByEndToEndIdResponseDto,
-)
+from modules.payment.dtos.payment_dto import PaymentDto
 from modules.payment.providers.get_payment_by_end_to_end_id_service import (
     GetPaymentByEndToEndIdServiceProvider,
 )
@@ -26,7 +24,7 @@ class GetPaymentApplicationService(ApplicationService):
 
     async def process(
         self, id: Optional[str] = None, end_to_end_id: Optional[str] = None
-    ) -> GetPaymentByEndToEndIdResponseDto:
+    ) -> PaymentDto:
         if not id and not end_to_end_id:
             raise DomainException(
                 ExceptionConstants.INVALID_REQUEST,
@@ -48,7 +46,7 @@ class GetPaymentApplicationService(ApplicationService):
                     ExceptionConstants.PAYMENT_NOT_FOUND,
                     f"Payment not found for id: {id}",
                 )
-            return GetPaymentByEndToEndIdResponseDto.from_payment_entity(payment)
+            return PaymentDto.from_payment_entity(payment)
 
         self.logger.info(f"Getting payment by end_to_end_id: {end_to_end_id}")
         payment = await self.__get_payment_by_end_to_end_id_service.process(end_to_end_id)
@@ -58,4 +56,4 @@ class GetPaymentApplicationService(ApplicationService):
                 ExceptionConstants.PAYMENT_NOT_FOUND,
                 f"Payment not found for end_to_end_id: {end_to_end_id}",
             )
-        return GetPaymentByEndToEndIdResponseDto.from_payment_entity(payment)
+        return PaymentDto.from_payment_entity(payment)

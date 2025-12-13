@@ -7,7 +7,7 @@ from modules.external_provider.providers.get_external_provider_service_provider 
     GetExternalProviderServiceProvider,
 )
 from modules.payment.dtos import CreatePaymentOrderRequestDto
-from modules.payment.dtos.create_payment_order_response_dto import CreatePaymentOrderResponseDto
+from modules.payment.dtos.payment_dto import PaymentDto
 from modules.payment.providers.create_payment_service import (
     CreatePaymentServiceProvider,
 )
@@ -28,7 +28,7 @@ class CreatePaymentOrderService(ApplicationService):
         self.__create_payment_service = create_payment_service
         super().__init__(context=CreatePaymentOrderService.__name__)
 
-    async def process(self, request: CreatePaymentOrderRequestDto) -> CreatePaymentOrderResponseDto:
+    async def process(self, request: CreatePaymentOrderRequestDto) -> PaymentDto:
         self.logger.info(
             f"Creating payment order for client: {request.client_id} and end_to_end_id: {request.end_to_end_id}"
         )
@@ -47,4 +47,4 @@ class CreatePaymentOrderService(ApplicationService):
             )
         )
         payment = await self.__create_payment_service.process(order)
-        return CreatePaymentOrderResponseDto.from_payment_entity(payment)
+        return PaymentDto.from_payment_entity(payment)
