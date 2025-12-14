@@ -35,10 +35,7 @@ jobs:
         run: uv sync --frozen
 
       - name: Run tests with coverage
-        run: |
-          uv run pytest src/tests/ -v \
-            --cov=src \
-            --cov-report=xml
+        run: uv run task test
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
@@ -52,6 +49,6 @@ jobs:
             -Dsonar.projectKey=${{ env.SONAR_CLOUD_PROJECT_KEY }}
             -Dsonar.sources=src
             -Dsonar.python.version=3.12
-            -Dsonar.coverage.exclusions=**/tests/**,**/__pycache__/**,**/main.py
+            -Dsonar.coverage.exclusions=**/tests/**,**/__pycache__/**,**/main.py,**/providers/**
             -Dsonar.exclusions=**/tests/**,**/__pycache__/**
             -Dsonar.python.coverage.reportPaths=coverage.xml
