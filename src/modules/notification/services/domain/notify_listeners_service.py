@@ -1,4 +1,4 @@
-import requests
+import httpx
 
 from modules.client.services.domain.get_client_service import GetClientService
 from modules.payment.entities.payment_entity import PaymentEntity
@@ -25,9 +25,19 @@ class NotifyListenersService(DomainService):
             self.logger.title_box_warning(
                 f"Notifying external client: {client.notification_url}"
             )
-            requests.post(
-                client.notification_url,
-                json=payment.model_dump(mode="json"),
-            )
+            timeout = httpx.Timeout(10.0, connect=5.0)
+            async with httpx.AsyncClient(timeout=timeout) as http_client:
+                response = await http_client.post(
+                    client.notification_url,
+                    json=payment.model_dump(mode="json"),
+                )
+                response.raise_for_status()
+                self.logger.info(
+                    f"Notification sent successfully. Status: {response.status_code}"
+                )
+        except httpx.HTTPError as e:
+            self.logger.error(f"HTTP error notifying listeners: {e}")
+        except DomainException:
+            raise
         except Exception as e:
             self.logger.error(f"Error notifying listeners: {e}")
