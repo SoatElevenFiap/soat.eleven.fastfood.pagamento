@@ -9,6 +9,7 @@ from modules.external_provider.enums import ExternalProvider
 class FakerPaymentEntity:
     @staticmethod
     def create(
+        id: Optional[str] = None,
         client_id: Optional[str] = None,
         end_to_end_id: Optional[str] = None,
         external_reference_id: Optional[str] = None,
@@ -19,7 +20,7 @@ class FakerPaymentEntity:
     ) -> PaymentEntity:
         faker = Faker()
         
-        return PaymentEntity(
+        payment = PaymentEntity(
             client_id=client_id or faker.uuid4(),
             end_to_end_id=end_to_end_id or faker.uuid4(),
             external_reference_id=external_reference_id or faker.uuid4(),
@@ -28,4 +29,7 @@ class FakerPaymentEntity:
             status=status or PaymentStatus.PENDING,
             redirect_url=redirect_url or faker.url(),
         )
+        if id:
+            payment.id = id
+        return payment
 
