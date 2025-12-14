@@ -75,7 +75,9 @@ class TestChangePaymentStatusService:
         self.get_payment_by_end_to_end_id_service.process.return_value = None
 
         with pytest.raises(DomainException) as exc_info:
-            await change_payment_status_service.process(end_to_end_id, PaymentStatus.PAID)
+            await change_payment_status_service.process(
+                end_to_end_id, PaymentStatus.PAID
+            )
 
         assert exc_info.value.code == ExceptionConstants.PAYMENT_NOT_FOUND
         assert end_to_end_id in exc_info.value.message
@@ -125,4 +127,3 @@ class TestChangePaymentStatusService:
         )
         self.notify_listeners_service.process.assert_called_once()
         assert result == updated_payment
-

@@ -70,4 +70,3 @@ class TestCreatePaymentService:
             fake_order.end_to_end_id
         )
         self.payment_repository.add_payment.assert_not_called()
-

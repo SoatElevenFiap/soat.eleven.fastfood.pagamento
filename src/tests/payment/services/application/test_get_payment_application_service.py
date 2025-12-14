@@ -40,6 +40,7 @@ class TestGetPaymentApplicationService:
         self, get_payment_application_service: GetPaymentApplicationService
     ):
         from faker import Faker
+
         faker = Faker()
         payment_id = faker.uuid4()
         fake_payment = FakerPaymentEntity.create(id=payment_id)
@@ -57,6 +58,7 @@ class TestGetPaymentApplicationService:
         self, get_payment_application_service: GetPaymentApplicationService
     ):
         from faker import Faker
+
         faker = Faker()
         payment_id = faker.uuid4()
         fake_payment = FakerPaymentEntity.create(id=payment_id)
@@ -131,4 +133,3 @@ class TestGetPaymentApplicationService:
         self.get_payment_by_end_to_end_id_service.process.assert_called_once_with(
             end_to_end_id
         )
-

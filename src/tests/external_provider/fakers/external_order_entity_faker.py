@@ -1,4 +1,5 @@
 from typing import Optional
+
 from faker import Faker
 
 from modules.external_provider.entities.external_order import ExternalOrderEntity
@@ -30,4 +31,3 @@ class FakerExternalOrderEntity:
             provider=provider or ExternalProvider.MERCADOPAGO,
             provider_result=provider_result or {},
         )
-

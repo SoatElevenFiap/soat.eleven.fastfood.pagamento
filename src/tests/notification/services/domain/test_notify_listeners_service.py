@@ -1,11 +1,11 @@
-import pytest
 import httpx
+import pytest
 from pytest_mock import MockFixture
 
+from modules.client.services.domain.get_client_service import GetClientService
 from modules.notification.services.domain.notify_listeners_service import (
     NotifyListenersService,
 )
-from modules.client.services.domain.get_client_service import GetClientService
 from modules.payment.enums import PaymentStatus
 from modules.shared.constants import ExceptionConstants
 from modules.shared.exceptions.domain_exception import DomainException
@@ -16,9 +16,7 @@ from tests.payment.fakers import FakerPaymentEntity
 @pytest.mark.asyncio
 class TestNotifyListenersService:
     @pytest.fixture
-    def notify_listeners_service(
-        self, mocker: MockFixture
-    ) -> NotifyListenersService:
+    def notify_listeners_service(self, mocker: MockFixture) -> NotifyListenersService:
         self.get_client_service = mocker.MagicMock(spec=GetClientService)
         self.get_client_service.process = mocker.AsyncMock()
 
@@ -204,4 +202,3 @@ class TestNotifyListenersService:
         assert payment_data["end_to_end_id"] == fake_payment.end_to_end_id
         assert payment_data["value"] == fake_payment.value
         assert payment_data["status"] == fake_payment.status.value
-

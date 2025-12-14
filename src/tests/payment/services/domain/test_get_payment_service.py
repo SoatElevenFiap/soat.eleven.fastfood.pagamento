@@ -40,4 +40,3 @@ class TestGetPaymentService:
 
         self.payment_repository.get_payment.assert_called_once_with(payment_id)
         assert result is None
-

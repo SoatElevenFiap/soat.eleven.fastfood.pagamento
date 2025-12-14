@@ -1,9 +1,10 @@
 from typing import Optional
+
 from faker import Faker
 
+from modules.external_provider.enums import ExternalProvider
 from modules.payment.entities.payment_entity import PaymentEntity
 from modules.payment.enums import PaymentStatus
-from modules.external_provider.enums import ExternalProvider
 
 
 class FakerPaymentEntity:
@@ -19,7 +20,7 @@ class FakerPaymentEntity:
         redirect_url: Optional[str] = None,
     ) -> PaymentEntity:
         faker = Faker()
-        
+
         payment = PaymentEntity(
             client_id=client_id or faker.uuid4(),
             end_to_end_id=end_to_end_id or faker.uuid4(),
@@ -32,4 +33,3 @@ class FakerPaymentEntity:
         if id:
             payment.id = id
         return payment
-

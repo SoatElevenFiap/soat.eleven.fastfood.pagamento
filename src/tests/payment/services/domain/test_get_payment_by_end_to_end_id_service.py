@@ -17,9 +17,7 @@ class TestGetPaymentByEndToEndIdService:
         self.payment_repository = mocker.MagicMock(spec=PaymentRepository)
         self.payment_repository.get_payment_by_end_to_end_id = mocker.AsyncMock()
 
-        return GetPaymentByEndToEndIdService(
-            payment_repository=self.payment_repository
-        )
+        return GetPaymentByEndToEndIdService(payment_repository=self.payment_repository)
 
     @pytest.mark.asyncio
     @pytest.mark.unit
@@ -52,4 +50,3 @@ class TestGetPaymentByEndToEndIdService:
             end_to_end_id
         )
         assert result is None
-

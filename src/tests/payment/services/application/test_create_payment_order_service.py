@@ -39,7 +39,9 @@ class TestCreatePaymentOrderService:
         )
         self.get_external_provider_service.process = mocker.AsyncMock()
 
-        self.create_payment_service = mocker.MagicMock(spec=CreatePaymentServiceProvider)
+        self.create_payment_service = mocker.MagicMock(
+            spec=CreatePaymentServiceProvider
+        )
         self.create_payment_service.process = mocker.AsyncMock()
 
         return CreatePaymentOrderService(
@@ -56,6 +58,7 @@ class TestCreatePaymentOrderService:
         mocker: MockFixture,
     ):
         from faker import Faker
+
         faker = Faker()
         fake_client = FakerClient.create()
         fake_order = FakerExternalOrderEntity.create(client_id=fake_client.id)
@@ -69,9 +72,7 @@ class TestCreatePaymentOrderService:
             client_id=fake_client.id,
             end_to_end_id=fake_order.end_to_end_id,
             items=[
-                PaymentItemModel(
-                    title="Item 1", quantity=1, unit_price=10.0
-                ),
+                PaymentItemModel(title="Item 1", quantity=1, unit_price=10.0),
             ],
         )
 
@@ -111,4 +112,3 @@ class TestCreatePaymentOrderService:
         self.get_client_service.process.assert_called_once_with(request.client_id)
         self.get_external_provider_service.process.assert_not_called()
         self.create_payment_service.process.assert_not_called()
-
