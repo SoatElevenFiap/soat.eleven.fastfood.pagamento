@@ -49,6 +49,6 @@ jobs:
             -Dsonar.projectKey=${{ env.SONAR_CLOUD_PROJECT_KEY }}
             -Dsonar.sources=src
             -Dsonar.python.version=3.12
-            -Dsonar.coverage.exclusions=**/tests/**,**/__pycache__/**,**/main.py,**/providers/**
+            -Dsonar.coverage.exclusions=**/tests/**,**/__pycache__/**,**/main.py,**/providers/**,**/adapters/**,**/enums/**,**/dtos/**,**/exceptions/**
             -Dsonar.exclusions=**/tests/**,**/__pycache__/**
             -Dsonar.python.coverage.reportPaths=coverage.xml

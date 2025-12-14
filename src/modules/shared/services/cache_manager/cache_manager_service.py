@@ -36,6 +36,59 @@ class CacheManagerService(ABC):
     def expire_keys(self, keys: List[str]) -> bool:
         return all(self.__cache.delete_value(key) for key in keys)
 
+    def _map_id_to_underscore_id(self, data: dict) -> dict:
+        """Mapeia 'id' para '_id' para compatibilidade com EntityAdapter."""
+        if "id" in data and "_id" not in data:
+            data["_id"] = data.get("id")
+        return data
+
+    def _deserialize_entity_list(
+        self, data: List[dict], entity_class: Type[BaseModel]
+    ) -> List[BaseModel]:
+        """Deserializa uma lista de entidades do cache."""
+        if not data:
+            return []
+        mapped_data = [
+            (
+                self._map_id_to_underscore_id(item.copy())
+                if isinstance(item, dict)
+                else item
+            )
+            for item in data
+        ]
+        return [entity_class(**item) for item in mapped_data]
+
+    def _deserialize_entity(
+        self, cached_data: str, entity_class: Type[BaseModel]
+    ) -> BaseModel | List[BaseModel]:
+        """Deserializa uma entidade do cache com fallback para diferentes formatos."""
+        try:
+            data = json.loads(cached_data)
+            if isinstance(data, list):
+                return self._deserialize_entity_list(data, entity_class)
+            if isinstance(data, dict):
+                mapped_data = self._map_id_to_underscore_id(data)
+                return entity_class(**mapped_data)
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+        try:
+            return entity_class.model_validate_json(cached_data)
+        except Exception:
+            data = json.loads(cached_data)
+            if isinstance(data, dict):
+                mapped_data = self._map_id_to_underscore_id(data)
+                return entity_class(**mapped_data)
+            raise
+
+    def _parse_cached_entity(
+        self, cached_data: str, entity_class: Optional[Type[BaseModel]]
+    ) -> Optional[T]:
+        """Parseia dados do cache para entidade ou retorna string."""
+        if not entity_class:
+            return cached_data
+        return self._deserialize_entity(cached_data, entity_class)
+
     async def build_cache_operation(
         self,
         key: str,
@@ -46,41 +99,8 @@ class CacheManagerService(ABC):
     ) -> Optional[T]:
         cached_data = self.get_value(key, default_value)
         if cached_data:
-            if entity_class:
-                try:
-                    data = json.loads(cached_data)
-                    if isinstance(data, list):
-                        # Mapear 'id' para '_id' para compatibilidade com EntityAdapter
-                        mapped_data = [
-                            (
-                                {**item, "_id": item.get("id")}
-                                if "id" in item and "_id" not in item
-                                else item
-                            )
-                            for item in data
-                        ]
-                        return (
-                            [entity_class(**item) for item in mapped_data]
-                            if mapped_data
-                            else []
-                        )
-                    # Mapear 'id' para '_id' para compatibilidade com EntityAdapter
-                    if "id" in data and "_id" not in data:
-                        data["_id"] = data.get("id")
-                    return entity_class(**data)
-                except (json.JSONDecodeError, TypeError):
-                    try:
-                        return entity_class.model_validate_json(cached_data)
-                    except Exception:
-                        data = json.loads(cached_data)
-                        if (
-                            isinstance(data, dict)
-                            and "id" in data
-                            and "_id" not in data
-                        ):
-                            data["_id"] = data.get("id")
-                        return entity_class(**data)
-            return cached_data
+            return self._parse_cached_entity(cached_data, entity_class)
+
         value = await callback()
         if value is not None:
             self.set_value(key, value, expire_in_milliseconds)

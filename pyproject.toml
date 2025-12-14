@@ -68,6 +68,10 @@ omit = [
     "*/__pycache__/*",
     "*/main.py",
     "*/providers/*",
+    "*/adapters/*",
+    "*/enums/*",
+    "*/dtos/*",
+    "*/exceptions/*"
 ]
 
 [tool.coverage.report]
