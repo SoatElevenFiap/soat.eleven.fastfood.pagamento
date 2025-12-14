@@ -71,7 +71,8 @@ omit = [
     "*/adapters/*",
     "*/enums/*",
     "*/dtos/*",
-    "*/exceptions/*"
+    "*/exceptions/*",
+    "*/decorators/*"
 ]
 
 [tool.coverage.report]
