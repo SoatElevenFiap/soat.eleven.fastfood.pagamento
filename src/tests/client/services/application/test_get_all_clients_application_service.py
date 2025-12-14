@@ -1,6 +1,7 @@
 import pytest
 from faker import Faker
 from pytest_mock import MockFixture
+
 from modules.client.dtos import ClientDto
 from modules.client.services.application.get_all_clients_application_service import (
     GetAllClientsApplicationService,
@@ -37,10 +38,14 @@ class TestGetAllClientsApplicationService:
 
         self.get_all_clients_service.process.assert_called_once()
         assert len(sut) == 3, "Should return all clients as DTOs"
-        assert all(isinstance(client, ClientDto) for client in sut), "All items should be ClientDto"
+        assert all(
+            isinstance(client, ClientDto) for client in sut
+        ), "All items should be ClientDto"
         assert sut[0].id == fake_clients[0].id, "First client ID should match"
         assert sut[0].name == fake_clients[0].name, "First client name should match"
-        assert sut[0].notification_url == fake_clients[0].notification_url, "First client notification_url should match"
+        assert (
+            sut[0].notification_url == fake_clients[0].notification_url
+        ), "First client notification_url should match"
 
     @pytest.mark.asyncio
     @pytest.mark.application

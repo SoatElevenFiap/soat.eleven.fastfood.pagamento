@@ -19,7 +19,9 @@ class GetPaymentApplicationService(ApplicationService):
         get_payment_by_end_to_end_id_service: GetPaymentByEndToEndIdServiceProvider,
     ):
         self.__get_payment_service = get_payment_service
-        self.__get_payment_by_end_to_end_id_service = get_payment_by_end_to_end_id_service
+        self.__get_payment_by_end_to_end_id_service = (
+            get_payment_by_end_to_end_id_service
+        )
         super().__init__(context=GetPaymentApplicationService.__name__)
 
     async def process(
@@ -49,7 +51,9 @@ class GetPaymentApplicationService(ApplicationService):
             return PaymentDto.from_payment_entity(payment)
 
         self.logger.info(f"Getting payment by end_to_end_id: {end_to_end_id}")
-        payment = await self.__get_payment_by_end_to_end_id_service.process(end_to_end_id)
+        payment = await self.__get_payment_by_end_to_end_id_service.process(
+            end_to_end_id
+        )
         if not payment:
             self.logger.error(f"Payment not found for end_to_end_id: {end_to_end_id}")
             raise DomainException(

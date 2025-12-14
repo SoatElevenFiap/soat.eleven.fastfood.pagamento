@@ -2,8 +2,8 @@ from typing import Annotated
 
 from fastapi import Depends
 
-from modules.shared.services.cache_manager import CacheManagerService
 from modules.shared.providers.redis_service_provider import RedisServiceProvider
+from modules.shared.services.cache_manager import CacheManagerService
 
 
 def cache_manager_service_provider(

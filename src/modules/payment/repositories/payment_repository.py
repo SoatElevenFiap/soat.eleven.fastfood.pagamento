@@ -42,9 +42,13 @@ class PaymentRepository(RepositoryAdapter):
 
     async def make_payment_paid(self, payment_id: str) -> Optional[PaymentEntity]:
         payment_document = await self.__mongo_service.update_document(
-            self.table, {"id": payment_id}, {"status": PaymentStatus.PAID, "updated_at": datetime.now(UTC)}
+            self.table,
+            {"id": payment_id},
+            {"status": PaymentStatus.PAID, "updated_at": datetime.now(UTC)},
         )
-        updated_payment = PaymentEntity(**payment_document) if payment_document else None
+        updated_payment = (
+            PaymentEntity(**payment_document) if payment_document else None
+        )
         if updated_payment:
             # Atualizar cache após mudança de status
             self.__update_payment_cache(updated_payment)
@@ -58,7 +62,9 @@ class PaymentRepository(RepositoryAdapter):
             {"id": payment_id},
             {"status": status, "updated_at": datetime.now(UTC)},
         )
-        updated_payment = PaymentEntity(**payment_document) if payment_document else None
+        updated_payment = (
+            PaymentEntity(**payment_document) if payment_document else None
+        )
         if updated_payment:
             # Atualizar cache após mudança de status
             self.__update_payment_cache(updated_payment)

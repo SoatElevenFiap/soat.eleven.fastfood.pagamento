@@ -7,4 +7,3 @@ class ClientCacheKeys:
         return CLIENT_BASE_CACHE + client_id
 
     ALL_CLIENTS_KEY = CLIENT_BASE_CACHE + "all"
-    

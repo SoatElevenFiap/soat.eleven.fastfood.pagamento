@@ -1,4 +1,5 @@
 import os
+
 import pytomlpp
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -32,7 +33,9 @@ app.add_middleware(
 
 @app.get("/health-check")
 async def health_check(settings: SettingsProvider):
-    project_info = pytomlpp.load(os.path.join(os.path.dirname(os.path.dirname(__file__)), "pyproject.toml"))
+    project_info = pytomlpp.load(
+        os.path.join(os.path.dirname(os.path.dirname(__file__)), "pyproject.toml")
+    )
     return {
         "message": "Microservice Payment is running",
         "version": project_info["project"]["version"],

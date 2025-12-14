@@ -1,8 +1,9 @@
 import pytest
 from faker import Faker
 from pytest_mock import MockFixture
-from modules.client.services.domain.get_client_service import GetClientService
+
 from modules.client.repositories.client_repository import ClientRepository
+from modules.client.services.domain.get_client_service import GetClientService
 from tests.client.fakers import FakerClient
 
 
@@ -20,9 +21,7 @@ class TestGetClientService:
     @pytest.mark.asyncio
     @pytest.mark.domain
     @pytest.mark.client
-    async def test_get_client_successfully(
-        self, get_client_service: GetClientService
-    ):
+    async def test_get_client_successfully(self, get_client_service: GetClientService):
         fake_client = FakerClient.create()
         self.client_repository.get_client.return_value = fake_client
 

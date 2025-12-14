@@ -3,11 +3,10 @@ from typing import Optional
 
 from modules.payment.dtos import CreatePaymentOrderRequestDto
 from modules.payment.dtos.payment_dto import PaymentDto
+from modules.payment.providers import GetPaymentApplicationServiceProvider
 from modules.payment.providers.create_payment_order_service import (
     CreatePaymentOrderServiceProvider,
 )
-from modules.payment.providers import GetPaymentApplicationServiceProvider
-
 from modules.shared.adapters import APIController
 from modules.shared.decorators import API
 
@@ -29,4 +28,6 @@ class PaymentController(APIController):
         id: Optional[str] = None,
         end_to_end_id: Optional[str] = None,
     ):
-        return await get_payment_application_service.process(id=id, end_to_end_id=end_to_end_id)
+        return await get_payment_application_service.process(
+            id=id, end_to_end_id=end_to_end_id
+        )

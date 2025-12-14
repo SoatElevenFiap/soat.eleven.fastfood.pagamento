@@ -19,4 +19,3 @@ def get_all_clients_service_provider(
 GetAllClientsServiceProvider = Annotated[
     GetAllClientsService, Depends(get_all_clients_service_provider)
 ]
-

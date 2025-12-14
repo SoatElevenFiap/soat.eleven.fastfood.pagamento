@@ -1,13 +1,14 @@
 import pytest
 from faker import Faker
 from pytest_mock import MockFixture
-from modules.external_provider.services.domain.get_external_provider_service import (
-    GetExternalProviderService,
-)
+
 from modules.external_provider.adapters.external_provider_adapter import (
     ExternalProviderAdapter,
 )
 from modules.external_provider.enums import ExternalProvider
+from modules.external_provider.services.domain.get_external_provider_service import (
+    GetExternalProviderService,
+)
 from modules.shared.constants import ExceptionConstants
 from modules.shared.exceptions.domain_exception import DomainException
 
@@ -15,12 +16,16 @@ from modules.shared.exceptions.domain_exception import DomainException
 @pytest.mark.asyncio
 class TestGetExternalProviderService:
     @pytest.fixture
-    def get_external_provider_service(self, mocker: MockFixture) -> GetExternalProviderService:
+    def get_external_provider_service(
+        self, mocker: MockFixture
+    ) -> GetExternalProviderService:
         self.faker = Faker()
 
         self.mercado_pago_service = mocker.MagicMock(spec=ExternalProviderAdapter)
 
-        return GetExternalProviderService(mercado_pago_service=self.mercado_pago_service)
+        return GetExternalProviderService(
+            mercado_pago_service=self.mercado_pago_service
+        )
 
     @pytest.mark.asyncio
     @pytest.mark.domain
@@ -67,4 +72,7 @@ class TestGetExternalProviderService:
             await get_external_provider_service.process(ExternalProvider.PAGSEGURO)
 
         assert exc_info.value.code == ExceptionConstants.INVALID_EXTERNAL_PROVIDER
-        assert "PAGSEGURO" in exc_info.value.message or "pagseguro" in exc_info.value.message
+        assert (
+            "PAGSEGURO" in exc_info.value.message
+            or "pagseguro" in exc_info.value.message
+        )

@@ -1,7 +1,9 @@
 from typing import List
+
 from modules.client.dtos import ClientDto
 from modules.client.services.domain.get_all_clients_service import GetAllClientsService
 from modules.shared.adapters import ApplicationService
+
 
 class GetAllClientsApplicationService(ApplicationService):
     def __init__(self, get_all_clients_service: GetAllClientsService):

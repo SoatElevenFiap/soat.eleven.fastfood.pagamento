@@ -13,4 +13,3 @@ class GetPaymentService(DomainService):
     async def process(self, payment_id: str) -> Optional[PaymentEntity]:
         self.logger.info(f"Getting payment: {payment_id}")
         return await self.__payment_repository.get_payment(payment_id)
-

@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import Depends
 
 from modules.client.repositories.client_repository import ClientRepository
-from modules.shared.providers import MongoServiceProvider, CacheManagerServiceProvider
+from modules.shared.providers import CacheManagerServiceProvider, MongoServiceProvider
 
 
 def client_repository_provider(

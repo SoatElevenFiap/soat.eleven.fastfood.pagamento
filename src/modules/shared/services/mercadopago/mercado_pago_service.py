@@ -15,8 +15,10 @@ from modules.payment.enums import PaymentStatus
 from modules.shared.constants import ExceptionConstants
 from modules.shared.exceptions.domain_exception import DomainException
 from modules.shared.services.logger.logger_service import LoggerService
-from modules.shared.services.mercadopago.dataclasses import PaymentNotificationDataclass
-from modules.shared.services.mercadopago.enums.mercado_pago_payment_status import MercadoPagoPaymentStatus
+from modules.shared.services.mercadopago.enums.mercado_pago_payment_status import (
+    MercadoPagoPaymentStatus,
+)
+from modules.shared.services.mercadopago.models import MercadoPagoNotificationModel
 
 
 class MercadoPagoCredentials(BaseModel):
@@ -71,7 +73,9 @@ class MercadoPagoService(ExternalProviderAdapter):
 
         if status == PaymentStatus.ERROR:
             self.logger.error("Error creating order")
-            raise DomainException(ExceptionConstants.INVALID_EXTERNAL_PROVIDER, "Error creating order")
+            raise DomainException(
+                ExceptionConstants.INVALID_EXTERNAL_PROVIDER, "Error creating order"
+            )
 
         self.logger.info("Order successfully created")
         return ExternalOrderEntity(
@@ -95,14 +99,18 @@ class MercadoPagoService(ExternalProviderAdapter):
         return await super().get_order()
 
     async def process_external_feedback(
-        self, notification: PaymentNotificationDataclass
+        self, notification: MercadoPagoNotificationModel
     ) -> ExternalOrderPaymentResultModel:
         self.logger.title_box("Processing external feedback from Mercado Pago")
         payment = self.__sdk.payment().get(notification.data["id"])
-        self.logger.info(f"Received mercado pago payment notification")
-        self.logger.title_box_warning(f"EID: {payment["response"]["external_reference"]} -> Status: {payment["response"]["status"]}")
+        self.logger.info("Received mercado pago payment notification")
+        self.logger.title_box_warning(
+            f"EID: {payment["response"]["external_reference"]} -> Status: {payment["response"]["status"]}"
+        )
         return ExternalOrderPaymentResultModel(
             end_to_end_id=payment["response"]["external_reference"],
-            status=MercadoPagoPaymentStatus.to_payment_status(payment["response"]["status"]),
+            status=MercadoPagoPaymentStatus.to_payment_status(
+                payment["response"]["status"]
+            ),
             provider=ExternalProvider.MERCADOPAGO,
         )

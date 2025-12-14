@@ -1,4 +1,3 @@
-
 from modules.client.providers.get_client_service_provider import (
     GetClientServiceProvider,
 )
@@ -35,7 +34,10 @@ class CreatePaymentOrderService(ApplicationService):
         client = await self.__get_client_service.process(request.client_id)
         if not client:
             self.logger.error(f"Client not found: {request.client_id}")
-            raise DomainException(ExceptionConstants.CLIENT_NOT_FOUND, f"Client not found for id: {request.client_id}")
+            raise DomainException(
+                ExceptionConstants.CLIENT_NOT_FOUND,
+                f"Client not found for id: {request.client_id}",
+            )
         external_provider_service = await self.__get_external_provider_service.process(
             request.provider
         )

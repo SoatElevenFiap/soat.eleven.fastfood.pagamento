@@ -17,4 +17,3 @@ def get_payment_service_provider(
 GetPaymentServiceProvider = Annotated[
     GetPaymentService, Depends(get_payment_service_provider)
 ]
-

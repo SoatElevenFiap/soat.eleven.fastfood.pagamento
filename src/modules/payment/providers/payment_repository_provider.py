@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import Depends
 
 from modules.payment.repositories.payment_repository import PaymentRepository
-from modules.shared.providers import MongoServiceProvider, CacheManagerServiceProvider
+from modules.shared.providers import CacheManagerServiceProvider, MongoServiceProvider
 
 
 def get_payment_repository_provider(

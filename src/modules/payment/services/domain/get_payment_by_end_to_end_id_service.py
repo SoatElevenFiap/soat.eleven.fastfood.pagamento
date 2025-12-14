@@ -12,5 +12,6 @@ class GetPaymentByEndToEndIdService(DomainService):
 
     async def process(self, end_to_end_id: str) -> Optional[PaymentEntity]:
         self.logger.info(f"Getting payment by end_to_end_id: {end_to_end_id}")
-        return await self.__payment_repository.get_payment_by_end_to_end_id(end_to_end_id)
-        
+        return await self.__payment_repository.get_payment_by_end_to_end_id(
+            end_to_end_id
+        )

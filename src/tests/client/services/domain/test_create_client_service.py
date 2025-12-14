@@ -1,11 +1,14 @@
 import pytest
 from faker import Faker
 from pytest_mock import MockFixture
-from modules.client.services.domain.create_client_service import CreateClientService
+
 from modules.client.repositories.client_repository import ClientRepository
-from modules.client.services.domain.get_client_by_notification_url_service import GetClientByNotificationUrlService
-from modules.shared.exceptions.domain_exception import DomainException
+from modules.client.services.domain.create_client_service import CreateClientService
+from modules.client.services.domain.get_client_by_notification_url_service import (
+    GetClientByNotificationUrlService,
+)
 from modules.shared.constants import ExceptionConstants
+from modules.shared.exceptions.domain_exception import DomainException
 from tests.client.fakers import FakerClient
 
 
@@ -15,8 +18,12 @@ class TestCreateClientService:
     def create_client_service(self, mocker: MockFixture) -> CreateClientService:
         self.faker = Faker()
 
-        self.get_client_by_notification_url_service = mocker.MagicMock(spec=GetClientByNotificationUrlService)
-        self.get_client_by_notification_url_service.process = mocker.AsyncMock(return_value=None)
+        self.get_client_by_notification_url_service = mocker.MagicMock(
+            spec=GetClientByNotificationUrlService
+        )
+        self.get_client_by_notification_url_service.process = mocker.AsyncMock(
+            return_value=None
+        )
 
         self.client_repository = mocker.MagicMock(spec=ClientRepository)
         self.client_repository.add_client = mocker.AsyncMock()
@@ -35,9 +42,13 @@ class TestCreateClientService:
         fake_client = FakerClient.create()
         self.client_repository.add_client.return_value = fake_client
 
-        sut = await create_client_service.process(fake_client.name, fake_client.notification_url)
+        sut = await create_client_service.process(
+            fake_client.name, fake_client.notification_url
+        )
 
-        self.get_client_by_notification_url_service.process.assert_called_once_with(fake_client.notification_url)
+        self.get_client_by_notification_url_service.process.assert_called_once_with(
+            fake_client.notification_url
+        )
         self.client_repository.add_client.assert_called_once()
         assert sut == fake_client, "Client should be created"
 
@@ -51,8 +62,12 @@ class TestCreateClientService:
         self.get_client_by_notification_url_service.process.return_value = fake_client
 
         with pytest.raises(DomainException) as exc_info:
-            await create_client_service.process(fake_client.name, fake_client.notification_url)
+            await create_client_service.process(
+                fake_client.name, fake_client.notification_url
+            )
 
         assert exc_info.value.code == ExceptionConstants.CLIENT_ALREADY_EXISTS
-        self.get_client_by_notification_url_service.process.assert_called_once_with(fake_client.notification_url)
+        self.get_client_by_notification_url_service.process.assert_called_once_with(
+            fake_client.notification_url
+        )
         self.client_repository.add_client.assert_not_called()

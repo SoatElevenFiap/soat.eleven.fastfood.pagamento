@@ -3,7 +3,9 @@ from typing import Annotated
 from fastapi import Depends
 
 from modules.client.providers.client_repository_provider import ClientRepositoryProvider
-from modules.client.providers.get_client_by_notification_url_service_provider import GetClientByNotificationUrlServiceProvider
+from modules.client.providers.get_client_by_notification_url_service_provider import (
+    GetClientByNotificationUrlServiceProvider,
+)
 from modules.client.services.domain.create_client_service import CreateClientService
 
 

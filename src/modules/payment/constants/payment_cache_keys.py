@@ -10,4 +10,3 @@ class PaymentCacheKeys:
     @staticmethod
     def payment_by_end_to_end_id_key_for(end_to_end_id: str) -> str:
         return PAYMENT_E2E_BASE_CACHE + end_to_end_id
-

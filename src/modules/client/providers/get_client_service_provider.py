@@ -6,9 +6,7 @@ from modules.client.providers.client_repository_provider import ClientRepository
 from modules.client.services.domain.get_client_service import GetClientService
 
 
-def get_client_service_provider(
-    client_repository: ClientRepositoryProvider
-):
+def get_client_service_provider(client_repository: ClientRepositoryProvider):
     return GetClientService(client_repository=client_repository)
 
 

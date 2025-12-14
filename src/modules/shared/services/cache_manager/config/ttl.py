@@ -2,6 +2,7 @@ class TTL:
     """
     TTL em milissegundos
     """
+
     FIVE_MINUTES = 300000
     TEN_MINUTES = 600000
     THIRTY_MINUTES = 1800000

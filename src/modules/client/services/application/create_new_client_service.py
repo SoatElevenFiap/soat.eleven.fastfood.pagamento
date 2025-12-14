@@ -1,6 +1,6 @@
 from typing import Optional
 
-from modules.client.dtos import CreateClientRequestDto, ClientDto
+from modules.client.dtos import ClientDto, CreateClientRequestDto
 from modules.client.services.domain.create_client_service import CreateClientService
 from modules.shared.adapters import ApplicationService
 

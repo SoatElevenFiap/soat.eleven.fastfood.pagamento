@@ -18,7 +18,10 @@ class NotifyListenersService(DomainService):
             client = await self.__get_client_service.process(payment.client_id)
             if not client:
                 self.logger.error(f"Client not found: {payment.client_id}")
-                raise DomainException(ExceptionConstants.INVALID_CLIENT, f"Client not found: {payment.client_id}")
+                raise DomainException(
+                    ExceptionConstants.INVALID_CLIENT,
+                    f"Client not found: {payment.client_id}",
+                )
             self.logger.title_box_warning(
                 f"Notifying external client: {client.notification_url}"
             )

@@ -1,10 +1,8 @@
-from typing import Any, Dict
-
 from modules.shared.adapters import ApplicationService
 from modules.shared.providers.mercado_pago_service_provider import (
     MercadoPagoServiceProvider,
 )
-from modules.shared.services.mercadopago.dataclasses import PaymentNotificationDataclass
+from modules.shared.services.mercadopago.models import MercadoPagoNotificationModel
 from modules.webhook.providers.process_external_payment_result_service_provider import (
     ProcessExternalPaymentResultServiceProvider,
 )
@@ -27,27 +25,26 @@ class ProccessMercadoPagoMessageService(ApplicationService):
         )
         super().__init__(context=ProccessMercadoPagoMessageService.__name__)
 
-    async def process(self, notification: Dict[str, Any]):
+    async def process(self, notification: MercadoPagoNotificationModel):
         try:
             self.logger.info("Saving webhook notification...")
-            await self.save_webhook_notification_service.process(notification)
+            await self.save_webhook_notification_service.process(notification.to_dict())
         except Exception as e:
             self.logger.error(f"Error saving webhook notification: {e}")
 
-        if not notification.get("type"):
+        if not notification.has_type():
             self.logger.warning(
-                f"Notification type is not present: {notification}, skipping..."
+                f"Notification type is not present: {notification.to_dict()}, skipping..."
             )
             return
 
-        if "payment" not in str(notification["type"]):
+        if not notification.is_payment_notification():
             self.logger.warning(
-                f"Notification type is not payment: {notification['type']}, skipping..."
+                f"Notification type is not payment: {notification.type}, skipping..."
             )
             return
 
-        payment_notification = PaymentNotificationDataclass(**notification)
         result_status = await self.mercado_pago_service.process_external_feedback(
-            payment_notification
+            notification
         )
         await self.process_external_payment_result_service.process(result_status)

@@ -1,11 +1,13 @@
 from http import HTTPMethod
 from typing import List
 
-from modules.client.dtos import CreateClientRequestDto, ClientDto
+from modules.client.dtos import ClientDto, CreateClientRequestDto
 from modules.client.providers.create_new_client_service_provider import (
     CreateNewClientServiceProvider,
 )
-from modules.client.providers.get_all_clients_application_service_provider import GetAllClientsApplicationServiceProvider
+from modules.client.providers.get_all_clients_application_service_provider import (
+    GetAllClientsApplicationServiceProvider,
+)
 from modules.shared.adapters import APIController
 from modules.shared.decorators import API
 

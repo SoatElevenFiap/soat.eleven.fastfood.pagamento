@@ -1,6 +1,7 @@
 from typing import Optional
 
 from faker import Faker
+
 from modules.client.entities.client_entity import ClientEntity
 
 

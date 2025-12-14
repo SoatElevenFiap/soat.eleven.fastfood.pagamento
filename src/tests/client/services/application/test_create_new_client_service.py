@@ -1,6 +1,7 @@
 import pytest
 from faker import Faker
 from pytest_mock import MockFixture
+
 from modules.client.dtos.create_client_request_dataclass import CreateClientRequestDto
 from modules.client.services.application.create_new_client_service import (
     CreateNewClientService,

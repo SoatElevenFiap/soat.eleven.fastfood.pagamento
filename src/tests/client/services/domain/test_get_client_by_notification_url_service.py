@@ -1,10 +1,11 @@
 import pytest
 from faker import Faker
 from pytest_mock import MockFixture
+
+from modules.client.repositories.client_repository import ClientRepository
 from modules.client.services.domain.get_client_by_notification_url_service import (
     GetClientByNotificationUrlService,
 )
-from modules.client.repositories.client_repository import ClientRepository
 from tests.client.fakers import FakerClient
 
 
@@ -19,7 +20,9 @@ class TestGetClientByNotificationUrlService:
         self.client_repository = mocker.MagicMock(spec=ClientRepository)
         self.client_repository.get_client_by_notification_url = mocker.AsyncMock()
 
-        return GetClientByNotificationUrlService(client_repository=self.client_repository)
+        return GetClientByNotificationUrlService(
+            client_repository=self.client_repository
+        )
 
     @pytest.mark.asyncio
     @pytest.mark.domain

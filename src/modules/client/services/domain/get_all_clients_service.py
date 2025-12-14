@@ -13,4 +13,3 @@ class GetAllClientsService(DomainService):
     async def process(self) -> List[ClientEntity]:
         self.logger.info("Getting all clients...")
         return await self.__client_repository.get_all_clients()
-

@@ -1,8 +1,9 @@
 import pytest
 from faker import Faker
 from pytest_mock import MockFixture
-from modules.client.services.domain.get_all_clients_service import GetAllClientsService
+
 from modules.client.repositories.client_repository import ClientRepository
+from modules.client.services.domain.get_all_clients_service import GetAllClientsService
 from tests.client.fakers import FakerClient
 
 

@@ -40,7 +40,9 @@ class MongoService:
         await collection.update_one(query, {"$set": document})
         return await self.get_document(collection_name, query)
 
-    async def get_all_documents(self, collection_name: str, query: dict = None) -> list[dict]:
+    async def get_all_documents(
+        self, collection_name: str, query: dict = None
+    ) -> list[dict]:
         collection = self.db[collection_name]
         query = query or {}
         if "id" in query:
