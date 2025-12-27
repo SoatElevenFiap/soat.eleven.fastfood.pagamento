@@ -2,6 +2,9 @@ name: Quality Check
 
 on:
   workflow_call:
+    secrets:
+      SONAR_TOKEN:
+        required: true
 
 env:
   SONAR_CLOUD_ORGANIZATION: 'soatelevenfiap'
