@@ -4,7 +4,7 @@ on:
   workflow_call:
 
 env:
-  SONAR_CLOUD_ORGANIZATION: '11SOAP'
+  SONAR_CLOUD_ORGANIZATION: 'soatelevenfiap'
   SONAR_CLOUD_PROJECT_KEY: 'soat.eleven.fastfood.pagamento'
   PYTHON_VERSION: '3.12'
 
