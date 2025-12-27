@@ -1,0 +1,54 @@
+name: Quality Check
+
+on:
+  workflow_call:
+
+env:
+  SONAR_CLOUD_ORGANIZATION: '11soap'
+  SONAR_CLOUD_PROJECT_KEY: 'soat.eleven.fastfood.pagamento'
+  PYTHON_VERSION: '3.12'
+
+jobs:
+  quality:
+    name: Quality Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'uv'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Run tests with coverage
+        run: uv run task test
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          projectBaseDir: .
+          args: >
+            -Dsonar.organization=${{ env.SONAR_CLOUD_ORGANIZATION }}
+            -Dsonar.projectKey=${{ env.SONAR_CLOUD_PROJECT_KEY }}
+            -Dsonar.sources=src
+            -Dsonar.python.version=${{ env.PYTHON_VERSION }}
+            -Dsonar.coverage.exclusions=**/tests/**,**/__pycache__/**,**/main.py,**/providers/**,**/adapters/**,**/enums/**,**/dtos/**,**/exceptions/**
+            -Dsonar.exclusions=**/tests/**,**/__pycache__/**
+            -Dsonar.python.coverage.reportPaths=coverage.xml
+            -Dsonar.qualitygate.wait=true

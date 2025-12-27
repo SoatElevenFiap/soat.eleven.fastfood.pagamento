@@ -5,6 +5,8 @@ description = "Microservice for payment management"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "azure-identity>=1.20.0",
+    "azure-keyvault-secrets>=4.9.0",
     "faker>=38.2.0",
     "fastapi[standard]>=0.122.0",
     "loguru>=0.7.3",

@@ -1,0 +1,22 @@
+name: Quality Check
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: quality-check-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    uses: ./.github/workflows/reusable/lint.yml
+
+  test:
+    uses: ./.github/workflows/reusable/test.yml
+
+  quality:
+    needs: [lint, test]
+    uses: ./.github/workflows/reusable/quality-check.yml

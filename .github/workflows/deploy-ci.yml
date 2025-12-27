@@ -1,0 +1,149 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  PYTHON_VERSION: '3.12'
+  REGISTRY: acrfastfoodpostech.azurecr.io
+  APP_IMAGE_NAME: fastfood/app
+  AKS_RESOURCE_GROUP: rg-fastfood-postech
+  AKS_CLUSTER_NAME: aks-fastfood-postech
+  NAMESPACE: fastfood
+  DEPLOYMENT_NAME: soat.eleven.fastfood.pagamento
+
+jobs:
+  build-and-push-acr:
+    name: Build and Push to ACR
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+        continue-on-error: false
+
+      - name: Extract ACR name from registry
+        id: acr
+        run: |
+          ACR_NAME=$(echo "${{ env.REGISTRY }}" | sed 's/\.azurecr\.io//')
+          echo "name=${ACR_NAME}" >> $GITHUB_OUTPUT
+
+      - name: Log in to Azure Container Registry
+        run: |
+          az acr login --name ${{ steps.acr.outputs.name }}
+
+      - name: Extract version
+        id: version
+        run: |
+          VERSION=$(echo ${{ github.sha }} | cut -c1-7)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=${{ env.REGISTRY }}/${{ env.APP_IMAGE_NAME }}:$VERSION" >> $GITHUB_OUTPUT
+          echo "tag_latest=${{ env.REGISTRY }}/${{ env.APP_IMAGE_NAME }}:latest" >> $GITHUB_OUTPUT
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ steps.version.outputs.tag }}
+            ${{ steps.version.outputs.tag_latest }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.APP_IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.APP_IMAGE_NAME }}:buildcache,mode=max
+
+      - name: Output image tag
+        id: output
+        run: |
+          echo "image=${{ steps.version.outputs.tag }}" >> $GITHUB_OUTPUT
+          echo "image_latest=${{ steps.version.outputs.tag_latest }}" >> $GITHUB_OUTPUT
+
+  deploy-aks:
+    name: Deploy to AKS
+    needs: [build-and-push-acr]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+        continue-on-error: false
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Get AKS credentials
+        run: |
+          az aks get-credentials \
+            --resource-group ${{ env.AKS_RESOURCE_GROUP }} \
+            --name ${{ env.AKS_CLUSTER_NAME }} \
+            --overwrite-existing
+        continue-on-error: false
+
+      - name: Extract version
+        id: version
+        run: |
+          VERSION=$(echo ${{ github.sha }} | cut -c1-7)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "image=${{ env.REGISTRY }}/${{ env.APP_IMAGE_NAME }}:$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create namespace if not exists
+        run: |
+          kubectl create namespace ${{ env.NAMESPACE }} --dry-run=client -o yaml | kubectl apply -f -
+        continue-on-error: false
+
+      - name: Update deployment.yaml with ACR image
+        run: |
+          IMAGE="${{ steps.version.outputs.image }}"
+          sed "s|\${IMAGE_NAME}|${IMAGE}|g" .azuredevops/deployment.yaml > deployment-processed.yaml
+        continue-on-error: false
+
+      - name: Apply deployment and service
+        run: |
+          kubectl apply -f deployment-processed.yaml -n ${{ env.NAMESPACE }}
+        continue-on-error: false
+
+      - name: Wait for rollout
+        run: |
+          kubectl rollout status deployment/${{ env.DEPLOYMENT_NAME }} \
+            -n ${{ env.NAMESPACE }} \
+            --timeout=5m
+        continue-on-error: false
+
+      - name: Verify deployment
+        run: |
+          echo "=== Deployment Status ==="
+          kubectl get deployment ${{ env.DEPLOYMENT_NAME }} -n ${{ env.NAMESPACE }}
+          echo ""
+          echo "=== Service Status ==="
+          kubectl get service ${{ env.DEPLOYMENT_NAME }} -n ${{ env.NAMESPACE }}
+          echo ""
+          echo "=== Pods Status ==="
+          kubectl get pods -l app=${{ env.DEPLOYMENT_NAME }} -n ${{ env.NAMESPACE }}
+        continue-on-error: false

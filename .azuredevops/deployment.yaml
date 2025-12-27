@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: soat.eleven.fastfood.pagamento
+  namespace: fastfood
   labels:
     app: soat.eleven.fastfood.pagamento
 spec:
@@ -16,7 +17,7 @@ spec:
     spec:
       containers:
       - name: soat.eleven.fastfood.pagamento
-        image: soat.eleven.fastfood.pagamento:latest
+        image: ${IMAGE_NAME}
         ports:
         - containerPort: 8000
           name: http
@@ -57,6 +58,10 @@ apiVersion: v1
 kind: Service
 metadata:
   name: soat.eleven.fastfood.pagamento
+  namespace: fastfood
+  annotations:
+    # Este serviço é apenas para acesso interno (ClusterIP)
+    # A exposição externa da rota /v1/webhook/mercado-pago deve ser configurada no API Gateway
 spec:
   selector:
     app: soat.eleven.fastfood.pagamento
@@ -65,3 +70,38 @@ spec:
     port: 80
     targetPort: 8000
   type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: soat.eleven.fastfood.pagamento-network-policy
+  namespace: fastfood
+spec:
+  podSelector:
+    matchLabels:
+      app: soat.eleven.fastfood.pagamento
+  policyTypes:
+    - Ingress
+  ingress:
+    # Permite acesso apenas de outros pods no mesmo namespace (microserviços internos)
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: fastfood
+      ports:
+        - protocol: TCP
+          port: 8000
+    # Permite acesso do API Gateway (ajuste o namespace conforme sua configuração)
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: gateway
+        - namespaceSelector:
+            matchLabels:
+              name: istio-system
+        - namespaceSelector:
+            matchLabels:
+              name: kong
+      ports:
+        - protocol: TCP
+          port: 8000
