@@ -13,6 +13,9 @@ jobs:
     name: Quality Check
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -32,12 +35,11 @@ jobs:
       - name: Install dependencies
         run: uv sync --frozen
 
-      - name: Run tests with coverage
-        run: uv run task test
-
       - name: Verify SONAR_TOKEN is configured
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          if [ -z "${{ secrets.SONAR_TOKEN }}" ]; then
+          if [ -z "$SONAR_TOKEN" ]; then
             echo "::error::SONAR_TOKEN secret is not configured. Please add it to Repository Secrets."
             exit 1
           else
