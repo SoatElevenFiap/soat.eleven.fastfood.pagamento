@@ -12,11 +12,11 @@ concurrency:
 
 jobs:
   lint:
-    uses: ./.github/workflows/reusable/lint.yml
+    uses: ./.github/workflows/lint.yml
 
   test:
-    uses: ./.github/workflows/reusable/test.yml
+    uses: ./.github/workflows/test.yml
 
   quality:
     needs: [lint, test]
-    uses: ./.github/workflows/reusable/quality-check.yml
+    uses: ./.github/workflows/quality-check.yml
