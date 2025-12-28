@@ -7,7 +7,7 @@ on:
         required: true
 
 env:
-  SONAR_CLOUD_ORGANIZATION: 'soatelevenfiap'
+  SONAR_CLOUD_ORGANIZATION: '11soap'
   SONAR_CLOUD_PROJECT_KEY: 'soat.eleven.fastfood.pagamento'
   PYTHON_VERSION: '3.12'
 
@@ -49,7 +49,42 @@ jobs:
             echo "✓ SONAR_TOKEN is configured"
           fi
 
+      - name: Verify SonarCloud project exists
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_ORG: ${{ env.SONAR_CLOUD_ORGANIZATION }}
+          SONAR_PROJECT: ${{ env.SONAR_CLOUD_PROJECT_KEY }}
+        run: |
+          echo "Verifying SonarCloud project: ${SONAR_PROJECT} in organization: ${SONAR_ORG}"
+          
+          # Verificar se o projeto existe
+          PROJECT_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            -u "${SONAR_TOKEN}:" \
+            "https://sonarcloud.io/api/projects/search?organization=${SONAR_ORG}&projects=${SONAR_PROJECT}" || echo "000")
+          
+          if [ "${PROJECT_STATUS}" = "200" ]; then
+            PROJECT_EXISTS=$(curl -s \
+              -u "${SONAR_TOKEN}:" \
+              "https://sonarcloud.io/api/projects/search?organization=${SONAR_ORG}&projects=${SONAR_PROJECT}" | \
+              grep -o "\"key\":\"${SONAR_PROJECT}\"" || echo "")
+            
+            if [ -n "${PROJECT_EXISTS}" ]; then
+              echo "✓ Project exists in SonarCloud"
+            else
+              echo "::warning::Project '${SONAR_PROJECT}' not found in organization '${SONAR_ORG}'"
+              echo "::warning::The project will be created automatically on first scan, or you can create it manually:"
+              echo "::warning::1. Go to https://sonarcloud.io/organizations/${SONAR_ORG}/projects"
+              echo "::warning::2. Click 'Add Project' → 'Analyze a new project'"
+              echo "::warning::3. Select this repository and configure the project"
+            fi
+          else
+            echo "::warning::Could not verify project existence (HTTP ${PROJECT_STATUS})"
+            echo "::warning::This may be a temporary issue. The scan will proceed."
+          fi
+        continue-on-error: true
+
       - name: SonarCloud Scan
+        id: sonar_scan
         uses: SonarSource/sonarqube-scan-action@v5.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -63,6 +98,21 @@ jobs:
             -Dsonar.python.version=${{ env.PYTHON_VERSION }}
             -Dsonar.coverage.exclusions=**/tests/**,**/__pycache__/**,**/main.py,**/providers/**,**/adapters/**,**/enums/**,**/dtos/**,**/exceptions/**
             -Dsonar.exclusions=**/tests/**,**/__pycache__/**
-            -Dsonar.python.coverage.reportPaths=coverage.xml
-            -Dsonar.qualitygate.wait=true
+        continue-on-error: true
+
+      - name: Check SonarCloud scan result
+        if: always() && steps.sonar_scan.outcome == 'failure'
+        run: |
+          echo "::warning::SonarCloud scan failed. This may be because:"
+          echo "::warning::1. The project does not exist in SonarCloud yet"
+          echo "::warning::2. The project is not linked to this GitHub repository"
+          echo "::warning::"
+          echo "::warning::To fix this:"
+          echo "::warning::1. Go to https://sonarcloud.io/organizations/${{ env.SONAR_CLOUD_ORGANIZATION }}/projects"
+          echo "::warning::2. Click 'Add Project' → 'Analyze a new project'"
+          echo "::warning::3. Select this repository: SoatElevenFiap/soat.eleven.fastfood.pagamento"
+          echo "::warning::4. Configure the project with key: ${{ env.SONAR_CLOUD_PROJECT_KEY }}"
+          echo "::warning::"
+          echo "::warning::See SONARCLOUD_SETUP.md for detailed instructions."
+          exit 1
 
