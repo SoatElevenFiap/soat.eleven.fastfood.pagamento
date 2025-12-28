@@ -359,7 +359,8 @@ jobs:
           fi
         continue-on-error: true
 
-      - name: Verify image exists in ACR
+      - name: Verify image exists in ACR and get available tag
+        id: image_check
         run: |
           ACR_NAME="acrfastfoodpostech029"
           IMAGE_TAG="${{ steps.version.outputs.version }}"
@@ -367,20 +368,35 @@ jobs:
           
           echo "Checking if image exists: ${ACR_NAME}.azurecr.io/${IMAGE_REPO}:${IMAGE_TAG}"
           
-          # Verificar se a tag existe
+          # Verificar se a tag específica existe
           if az acr repository show-tags \
             --name "${ACR_NAME}" \
             --repository "${IMAGE_REPO}" \
             --query "[?name=='${IMAGE_TAG}']" -o tsv 2>/dev/null | grep -q "${IMAGE_TAG}"; then
-            echo "✓ Image found in ACR: ${IMAGE_TAG}"
+            echo "✓ Image tag found in ACR: ${IMAGE_TAG}"
+            echo "tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
+            echo "use_latest=false" >> $GITHUB_OUTPUT
           else
             echo "::warning::Image tag '${IMAGE_TAG}' not found in ACR"
             echo "Available tags:"
             az acr repository show-tags --name "${ACR_NAME}" --repository "${IMAGE_REPO}" --orderby time_desc --top 5 -o table || echo "Repository may not exist yet"
             echo ""
-            echo "This may be the first deployment. The image will be built in the previous job."
+            
+            # Verificar se 'latest' existe
+            if az acr repository show-tags \
+              --name "${ACR_NAME}" \
+              --repository "${IMAGE_REPO}" \
+              --query "[?name=='latest']" -o tsv 2>/dev/null | grep -q "latest"; then
+              echo "::warning::Using 'latest' tag as fallback"
+              echo "tag=latest" >> $GITHUB_OUTPUT
+              echo "use_latest=true" >> $GITHUB_OUTPUT
+            else
+              echo "::error::Neither tag '${IMAGE_TAG}' nor 'latest' found in ACR"
+              echo "::error::Please ensure the image was built and pushed in the previous job"
+              exit 1
+            fi
           fi
-        continue-on-error: true
+        continue-on-error: false
 
       - name: Create namespace with labels if not exists
         run: |
@@ -419,10 +435,15 @@ jobs:
 
       - name: Deploy with Helm
         run: |
+          # Usar a tag verificada (ou fallback para latest)
+          IMAGE_TAG="${{ steps.image_check.outputs.tag || steps.version.outputs.version }}"
+          
+          echo "Deploying with image tag: ${IMAGE_TAG}"
+          
           helm upgrade --install pagamento ./helm/pagamento \
             --namespace ${{ env.NAMESPACE }} \
             --set image.repository=${{ env.REGISTRY }}/${{ env.APP_IMAGE_NAME }} \
-            --set image.tag=${{ steps.version.outputs.version }} \
+            --set image.tag=${IMAGE_TAG} \
             --set env.AZURE_KEY_VAULT_URL="${{ steps.keyvault.outputs.uri }}" \
             --set env.AZURE_KEY_VAULT_ENABLED="${{ steps.keyvault.outputs.enabled }}" \
             --set env.ENVIRONMENT="prod" \
