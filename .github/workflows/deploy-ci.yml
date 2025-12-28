@@ -118,6 +118,7 @@ jobs:
           echo "name=${ACR_NAME}" >> $GITHUB_OUTPUT
 
       - name: Verify ACR exists and permissions
+        id: acr_perms
         run: |
           ACR_NAME="${{ steps.acr.outputs.name }}"
           echo "Verifying ACR: ${ACR_NAME}"
@@ -130,7 +131,7 @@ jobs:
             exit 1
           fi
           
-          # Verificar permissões do Service Principal
+          # Obter IDs
           CLIENT_ID="${{ secrets.AZURE_CLIENT_ID }}"
           ACR_ID=$(az acr show --name "${ACR_NAME}" --resource-group "${{ env.AKS_RESOURCE_GROUP }}" --query id -o tsv)
           
@@ -140,8 +141,14 @@ jobs:
           if [ -z "${ROLE_ASSIGNMENTS}" ] || ! echo "${ROLE_ASSIGNMENTS}" | grep -qE "AcrPush|Contributor|Owner"; then
             echo "::warning::Service Principal may not have AcrPush permission on ACR"
             echo "Current role assignments: ${ROLE_ASSIGNMENTS:-none}"
-            echo "To fix, run:"
-            echo "  az role assignment create --assignee ${CLIENT_ID} --role AcrPush --scope ${ACR_ID}"
+            echo ""
+            echo "To fix, run this command:"
+            echo "az role assignment create \\"
+            echo "  --assignee ${CLIENT_ID} \\"
+            echo "  --role AcrPush \\"
+            echo "  --scope ${ACR_ID}"
+            echo ""
+            echo "Will attempt login anyway to verify..."
           else
             echo "✓ Service Principal has required permissions"
           fi
@@ -149,12 +156,22 @@ jobs:
       - name: Log in to Azure Container Registry
         run: |
           ACR_NAME="${{ steps.acr.outputs.name }}"
-          # Usar login com Service Principal (já autenticado via az login)
-          az acr login --name "${ACR_NAME}"
+          # Tentar login com Service Principal (já autenticado via az login)
+          if ! az acr login --name "${ACR_NAME}" 2>&1; then
+            echo ""
+            echo "::error::Failed to authenticate with ACR"
+            echo "::error::The Service Principal needs 'AcrPush' role on the ACR"
+            echo ""
+            echo "Run this command to fix:"
+            CLIENT_ID="${{ secrets.AZURE_CLIENT_ID }}"
+            ACR_ID=$(az acr show --name "${ACR_NAME}" --resource-group "${{ env.AKS_RESOURCE_GROUP }}" --query id -o tsv)
+            echo "az role assignment create --assignee ${CLIENT_ID} --role AcrPush --scope ${ACR_ID}"
+            exit 1
+          fi
           
           # Verificar se o login funcionou tentando listar repositórios
           if ! az acr repository list --name "${ACR_NAME}" > /dev/null 2>&1; then
-            echo "::error::Failed to authenticate with ACR. Check Service Principal permissions."
+            echo "::error::Failed to list repositories. Check Service Principal permissions."
             echo "::error::Ensure the Service Principal has 'AcrPush' role on the ACR"
             exit 1
           fi
@@ -295,6 +312,75 @@ jobs:
           VERSION=$(echo ${{ github.sha }} | cut -c1-7)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "image=${{ env.REGISTRY }}/${{ env.APP_IMAGE_NAME }}:$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Configure AKS permissions on ACR
+        run: |
+          ACR_NAME="acrfastfoodpostech029"
+          ACR_ID=$(az acr show --name "${ACR_NAME}" --resource-group "${{ env.AKS_RESOURCE_GROUP }}" --query id -o tsv)
+          
+          # Obter Managed Identity do AKS
+          AKS_IDENTITY=$(az aks show \
+            --resource-group "${{ env.AKS_RESOURCE_GROUP }}" \
+            --name "${{ env.AKS_CLUSTER_NAME }}" \
+            --query "identity.userAssignedIdentities" -o json)
+          
+          if [ -z "${AKS_IDENTITY}" ] || [ "${AKS_IDENTITY}" = "null" ]; then
+            echo "::warning::AKS does not have Managed Identity configured"
+            exit 0
+          fi
+          
+          # Extrair o primeiro ID da Managed Identity
+          AKS_IDENTITY_ID=$(echo "${AKS_IDENTITY}" | python3 -c "import sys, json; data = json.load(sys.stdin); print(list(data.values())[0]['principalId'] if data else '')")
+          
+          if [ -z "${AKS_IDENTITY_ID}" ]; then
+            echo "::warning::Could not extract AKS Managed Identity ID"
+            exit 0
+          fi
+          
+          # Verificar se já tem permissão
+          EXISTING_ROLE=$(az role assignment list \
+            --assignee "${AKS_IDENTITY_ID}" \
+            --scope "${ACR_ID}" \
+            --query "[?roleDefinitionName=='AcrPull'].roleDefinitionName" -o tsv 2>/dev/null || echo "")
+          
+          if [ -n "${EXISTING_ROLE}" ]; then
+            echo "✓ AKS already has AcrPull permission on ACR"
+          else
+            echo "Configuring AcrPull permission for AKS..."
+            if az role assignment create \
+              --assignee "${AKS_IDENTITY_ID}" \
+              --role "AcrPull" \
+              --scope "${ACR_ID}" \
+              > /dev/null 2>&1; then
+              echo "✓ AcrPull permission configured for AKS"
+            else
+              echo "::warning::Failed to configure AcrPull permission. You may need to configure it manually"
+            fi
+          fi
+        continue-on-error: true
+
+      - name: Verify image exists in ACR
+        run: |
+          ACR_NAME="acrfastfoodpostech029"
+          IMAGE_TAG="${{ steps.version.outputs.version }}"
+          IMAGE_REPO="fastfood/app"
+          
+          echo "Checking if image exists: ${ACR_NAME}.azurecr.io/${IMAGE_REPO}:${IMAGE_TAG}"
+          
+          # Verificar se a tag existe
+          if az acr repository show-tags \
+            --name "${ACR_NAME}" \
+            --repository "${IMAGE_REPO}" \
+            --query "[?name=='${IMAGE_TAG}']" -o tsv 2>/dev/null | grep -q "${IMAGE_TAG}"; then
+            echo "✓ Image found in ACR: ${IMAGE_TAG}"
+          else
+            echo "::warning::Image tag '${IMAGE_TAG}' not found in ACR"
+            echo "Available tags:"
+            az acr repository show-tags --name "${ACR_NAME}" --repository "${IMAGE_REPO}" --orderby time_desc --top 5 -o table || echo "Repository may not exist yet"
+            echo ""
+            echo "This may be the first deployment. The image will be built in the previous job."
+          fi
+        continue-on-error: true
 
       - name: Create namespace with labels if not exists
         run: |
