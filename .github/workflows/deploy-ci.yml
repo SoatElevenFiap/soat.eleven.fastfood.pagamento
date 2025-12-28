@@ -79,13 +79,36 @@ jobs:
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
 
+      - name: Build Azure credentials JSON
+        id: azure_creds
+        run: |
+          python3 << 'EOF'
+          import json
+          import os
+          
+          # Construir JSON no formato esperado pelo azure/login@v2
+          creds_json = {
+              "clientId": os.environ.get('AZURE_CLIENT_ID', ''),
+              "clientSecret": os.environ.get('AZURE_CLIENT_SECRET', ''),
+              "subscriptionId": os.environ.get('AZURE_SUBSCRIPTION_ID', ''),
+              "tenantId": os.environ.get('AZURE_TENANT_ID', '')
+          }
+          
+          # Salvar como output do step usando GITHUB_OUTPUT
+          json_str = json.dumps(creds_json)
+          with open(os.environ.get('GITHUB_OUTPUT'), 'a') as f:
+              f.write(f'creds<<EOF\n{json_str}\nEOF\n')
+          EOF
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+
       - name: Log in to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          creds: ${{ steps.azure_creds.outputs.creds }}
         continue-on-error: false
 
       - name: Extract ACR name from registry
@@ -180,13 +203,36 @@ jobs:
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
 
+      - name: Build Azure credentials JSON
+        id: azure_creds
+        run: |
+          python3 << 'EOF'
+          import json
+          import os
+          
+          # Construir JSON no formato esperado pelo azure/login@v2
+          creds_json = {
+              "clientId": os.environ.get('AZURE_CLIENT_ID', ''),
+              "clientSecret": os.environ.get('AZURE_CLIENT_SECRET', ''),
+              "subscriptionId": os.environ.get('AZURE_SUBSCRIPTION_ID', ''),
+              "tenantId": os.environ.get('AZURE_TENANT_ID', '')
+          }
+          
+          # Salvar como output do step usando GITHUB_OUTPUT
+          json_str = json.dumps(creds_json)
+          with open(os.environ.get('GITHUB_OUTPUT'), 'a') as f:
+              f.write(f'creds<<EOF\n{json_str}\nEOF\n')
+          EOF
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+
       - name: Log in to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          creds: ${{ steps.azure_creds.outputs.creds }}
         continue-on-error: false
 
       - name: Set up kubectl
