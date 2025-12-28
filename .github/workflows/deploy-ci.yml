@@ -35,6 +35,44 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Validate Azure credentials format
+        run: |
+          python3 << 'EOF'
+          import json
+          import re
+          import os
+          import sys
+          
+          creds = os.environ.get('AZURE_CREDENTIALS', '')
+          if not creds:
+              print("::error::AZURE_CREDENTIALS secret is not configured")
+              sys.exit(1)
+          
+          try:
+              data = json.loads(creds)
+          except json.JSONDecodeError:
+              print("::error::AZURE_CREDENTIALS must be a valid JSON")
+              sys.exit(1)
+          
+          required_fields = ['clientId', 'clientSecret', 'subscriptionId', 'tenantId']
+          for field in required_fields:
+              if field not in data:
+                  print(f"::error::Missing required field: {field}")
+                  sys.exit(1)
+          
+          # Verificar se clientSecret é um GUID (se for, é o ID, não o VALUE)
+          client_secret = data.get('clientSecret', '')
+          guid_pattern = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', re.IGNORECASE)
+          if guid_pattern.match(client_secret):
+              print("::error::clientSecret appears to be a GUID (Secret ID). You must use the Secret VALUE, not the ID!")
+              print("::error::Fix: Azure Portal → App registrations → Certificates & secrets → Copy the VALUE (not the ID)")
+              sys.exit(1)
+          
+          print("✓ Azure credentials format is valid")
+          EOF
+        env:
+          AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+
       - name: Log in to Azure
         uses: azure/login@v2
         with:
@@ -88,6 +126,43 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Validate Azure credentials format
+        run: |
+          python3 << 'EOF'
+          import json
+          import re
+          import os
+          import sys
+          
+          creds = os.environ.get('AZURE_CREDENTIALS', '')
+          if not creds:
+              print("::error::AZURE_CREDENTIALS secret is not configured")
+              sys.exit(1)
+          
+          try:
+              data = json.loads(creds)
+          except json.JSONDecodeError:
+              print("::error::AZURE_CREDENTIALS must be a valid JSON")
+              sys.exit(1)
+          
+          required_fields = ['clientId', 'clientSecret', 'subscriptionId', 'tenantId']
+          for field in required_fields:
+              if field not in data:
+                  print(f"::error::Missing required field: {field}")
+                  sys.exit(1)
+          
+          client_secret = data.get('clientSecret', '')
+          guid_pattern = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', re.IGNORECASE)
+          if guid_pattern.match(client_secret):
+              print("::error::clientSecret appears to be a GUID (Secret ID). You must use the Secret VALUE, not the ID!")
+              print("::error::Fix: Azure Portal → App registrations → Certificates & secrets → Copy the VALUE (not the ID)")
+              sys.exit(1)
+          
+          print("✓ Azure credentials format is valid")
+          EOF
+        env:
+          AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Log in to Azure
         uses: azure/login@v2

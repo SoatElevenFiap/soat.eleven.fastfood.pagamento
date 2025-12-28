@@ -177,4 +177,4 @@ pyrightconfig.json
 .rules
 .vscode
 
-.cursorrules
+.cursorrules.azure-credentials.json
