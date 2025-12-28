@@ -368,30 +368,39 @@ jobs:
           
           echo "Checking if image exists: ${ACR_NAME}.azurecr.io/${IMAGE_REPO}:${IMAGE_TAG}"
           
-          # Verificar se a tag específica existe
-          if az acr repository show-tags \
+          # Listar todas as tags disponíveis
+          ALL_TAGS=$(az acr repository show-tags \
             --name "${ACR_NAME}" \
             --repository "${IMAGE_REPO}" \
-            --query "[?name=='${IMAGE_TAG}']" -o tsv 2>/dev/null | grep -q "${IMAGE_TAG}"; then
+            --query "[].name" -o tsv 2>/dev/null || echo "")
+          
+          if [ -z "${ALL_TAGS}" ]; then
+            echo "::error::Repository '${IMAGE_REPO}' not found in ACR '${ACR_NAME}'"
+            echo "::error::Please ensure the image was built and pushed in the previous job"
+            exit 1
+          fi
+          
+          echo "Available tags:"
+          echo "${ALL_TAGS}" | head -10
+          echo ""
+          
+          # Verificar se a tag específica existe
+          if echo "${ALL_TAGS}" | grep -q "^${IMAGE_TAG}$"; then
             echo "✓ Image tag found in ACR: ${IMAGE_TAG}"
             echo "tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
             echo "use_latest=false" >> $GITHUB_OUTPUT
           else
             echo "::warning::Image tag '${IMAGE_TAG}' not found in ACR"
-            echo "Available tags:"
-            az acr repository show-tags --name "${ACR_NAME}" --repository "${IMAGE_REPO}" --orderby time_desc --top 5 -o table || echo "Repository may not exist yet"
             echo ""
             
             # Verificar se 'latest' existe
-            if az acr repository show-tags \
-              --name "${ACR_NAME}" \
-              --repository "${IMAGE_REPO}" \
-              --query "[?name=='latest']" -o tsv 2>/dev/null | grep -q "latest"; then
+            if echo "${ALL_TAGS}" | grep -q "^latest$"; then
               echo "::warning::Using 'latest' tag as fallback"
               echo "tag=latest" >> $GITHUB_OUTPUT
               echo "use_latest=true" >> $GITHUB_OUTPUT
             else
               echo "::error::Neither tag '${IMAGE_TAG}' nor 'latest' found in ACR"
+              echo "::error::Available tags: $(echo "${ALL_TAGS}" | tr '\n' ' ')"
               echo "::error::Please ensure the image was built and pushed in the previous job"
               exit 1
             fi
