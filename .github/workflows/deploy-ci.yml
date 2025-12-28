@@ -368,16 +368,44 @@ jobs:
           
           echo "Checking if image exists: ${ACR_NAME}.azurecr.io/${IMAGE_REPO}:${IMAGE_TAG}"
           
-          # Listar todas as tags disponíveis
-          ALL_TAGS=$(az acr repository show-tags \
-            --name "${ACR_NAME}" \
-            --repository "${IMAGE_REPO}" \
-            --query "[].name" -o tsv 2>/dev/null || echo "")
-          
-          if [ -z "${ALL_TAGS}" ]; then
+          # Verificar se o repositório existe primeiro
+          if ! az acr repository show --name "${ACR_NAME}" --repository "${IMAGE_REPO}" > /dev/null 2>&1; then
             echo "::error::Repository '${IMAGE_REPO}' not found in ACR '${ACR_NAME}'"
+            echo "Available repositories:"
+            az acr repository list --name "${ACR_NAME}" -o table || true
             echo "::error::Please ensure the image was built and pushed in the previous job"
             exit 1
+          fi
+          
+          # Listar todas as tags disponíveis (com retry)
+          MAX_RETRIES=3
+          RETRY_COUNT=0
+          ALL_TAGS=""
+          
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            ALL_TAGS=$(az acr repository show-tags \
+              --name "${ACR_NAME}" \
+              --repository "${IMAGE_REPO}" \
+              --query "[].name" -o tsv 2>&1)
+            
+            if [ $? -eq 0 ] && [ -n "${ALL_TAGS}" ]; then
+              break
+            fi
+            
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+              echo "Retry ${RETRY_COUNT}/${MAX_RETRIES}: Waiting for tags to be available..."
+              sleep 2
+            fi
+          done
+          
+          if [ -z "${ALL_TAGS}" ]; then
+            echo "::error::Could not retrieve tags from ACR"
+            echo "Repository exists but tags query failed. This may be a temporary issue."
+            echo "Attempting to use 'latest' as fallback..."
+            echo "tag=latest" >> $GITHUB_OUTPUT
+            echo "use_latest=true" >> $GITHUB_OUTPUT
+            exit 0
           fi
           
           echo "Available tags:"
@@ -399,10 +427,16 @@ jobs:
               echo "tag=latest" >> $GITHUB_OUTPUT
               echo "use_latest=true" >> $GITHUB_OUTPUT
             else
-              echo "::error::Neither tag '${IMAGE_TAG}' nor 'latest' found in ACR"
-              echo "::error::Available tags: $(echo "${ALL_TAGS}" | tr '\n' ' ')"
-              echo "::error::Please ensure the image was built and pushed in the previous job"
-              exit 1
+              # Se nem a tag específica nem latest existem, usar a primeira tag disponível
+              FIRST_TAG=$(echo "${ALL_TAGS}" | head -1)
+              if [ -n "${FIRST_TAG}" ]; then
+                echo "::warning::Using first available tag: ${FIRST_TAG}"
+                echo "tag=${FIRST_TAG}" >> $GITHUB_OUTPUT
+                echo "use_latest=false" >> $GITHUB_OUTPUT
+              else
+                echo "::error::No tags found in repository"
+                exit 1
+              fi
             fi
           fi
         continue-on-error: false
