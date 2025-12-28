@@ -35,7 +35,8 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Validate Azure credentials format
+      - name: Build Azure credentials from repository secrets
+        id: azure_creds
         run: |
           python3 << 'EOF'
           import json
@@ -43,40 +44,59 @@ jobs:
           import os
           import sys
           
-          creds = os.environ.get('AZURE_CREDENTIALS', '')
-          if not creds:
-              print("::error::AZURE_CREDENTIALS secret is not configured")
-              sys.exit(1)
+          # Usar repository secrets (têm prioridade sobre organization secrets)
+          client_id = os.environ.get('AZURE_CLIENT_ID', '')
+          client_secret = os.environ.get('AZURE_CLIENT_SECRET', '')
+          subscription_id = os.environ.get('AZURE_SUBSCRIPTION_ID', '')
+          tenant_id = os.environ.get('AZURE_TENANT_ID', '')
           
-          try:
-              data = json.loads(creds)
-          except json.JSONDecodeError:
-              print("::error::AZURE_CREDENTIALS must be a valid JSON")
-              sys.exit(1)
+          # Verificar se todos os campos estão presentes
+          missing = []
+          if not client_id:
+              missing.append('AZURE_CLIENT_ID')
+          if not client_secret:
+              missing.append('AZURE_CLIENT_SECRET')
+          if not subscription_id:
+              missing.append('AZURE_SUBSCRIPTION_ID')
+          if not tenant_id:
+              missing.append('AZURE_TENANT_ID')
           
-          required_fields = ['clientId', 'clientSecret', 'subscriptionId', 'tenantId']
-          for field in required_fields:
-              if field not in data:
-                  print(f"::error::Missing required field: {field}")
-                  sys.exit(1)
+          if missing:
+              print(f"::error::Missing repository secrets: {', '.join(missing)}")
+              print("::error::Configure these secrets in Repository Settings → Secrets → Actions")
+              sys.exit(1)
           
           # Verificar se clientSecret é um GUID (se for, é o ID, não o VALUE)
-          client_secret = data.get('clientSecret', '')
           guid_pattern = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', re.IGNORECASE)
           if guid_pattern.match(client_secret):
-              print("::error::clientSecret appears to be a GUID (Secret ID). You must use the Secret VALUE, not the ID!")
+              print("::error::AZURE_CLIENT_SECRET appears to be a GUID (Secret ID). You must use the Secret VALUE, not the ID!")
               print("::error::Fix: Azure Portal → App registrations → Certificates & secrets → Copy the VALUE (not the ID)")
               sys.exit(1)
           
-          print("✓ Azure credentials format is valid")
+          # Construir JSON
+          creds_json = {
+              "clientId": client_id,
+              "clientSecret": client_secret,
+              "subscriptionId": subscription_id,
+              "tenantId": tenant_id
+          }
+          
+          # Salvar em arquivo para uso posterior
+          with open('$GITHUB_ENV', 'a') as f:
+              f.write(f'AZURE_CREDENTIALS={json.dumps(creds_json)}\n')
+          
+          print("✓ Azure credentials built from repository secrets")
           EOF
         env:
-          AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
 
       - name: Log in to Azure
         uses: azure/login@v2
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          creds: ${{ env.AZURE_CREDENTIALS }}
         continue-on-error: false
 
       - name: Extract ACR name from registry
@@ -127,7 +147,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Validate Azure credentials format
+      - name: Build Azure credentials from repository secrets
+        id: azure_creds
         run: |
           python3 << 'EOF'
           import json
@@ -135,39 +156,59 @@ jobs:
           import os
           import sys
           
-          creds = os.environ.get('AZURE_CREDENTIALS', '')
-          if not creds:
-              print("::error::AZURE_CREDENTIALS secret is not configured")
+          # Usar repository secrets (têm prioridade sobre organization secrets)
+          client_id = os.environ.get('AZURE_CLIENT_ID', '')
+          client_secret = os.environ.get('AZURE_CLIENT_SECRET', '')
+          subscription_id = os.environ.get('AZURE_SUBSCRIPTION_ID', '')
+          tenant_id = os.environ.get('AZURE_TENANT_ID', '')
+          
+          # Verificar se todos os campos estão presentes
+          missing = []
+          if not client_id:
+              missing.append('AZURE_CLIENT_ID')
+          if not client_secret:
+              missing.append('AZURE_CLIENT_SECRET')
+          if not subscription_id:
+              missing.append('AZURE_SUBSCRIPTION_ID')
+          if not tenant_id:
+              missing.append('AZURE_TENANT_ID')
+          
+          if missing:
+              print(f"::error::Missing repository secrets: {', '.join(missing)}")
+              print("::error::Configure these secrets in Repository Settings → Secrets → Actions")
               sys.exit(1)
           
-          try:
-              data = json.loads(creds)
-          except json.JSONDecodeError:
-              print("::error::AZURE_CREDENTIALS must be a valid JSON")
-              sys.exit(1)
-          
-          required_fields = ['clientId', 'clientSecret', 'subscriptionId', 'tenantId']
-          for field in required_fields:
-              if field not in data:
-                  print(f"::error::Missing required field: {field}")
-                  sys.exit(1)
-          
-          client_secret = data.get('clientSecret', '')
+          # Verificar se clientSecret é um GUID (se for, é o ID, não o VALUE)
           guid_pattern = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', re.IGNORECASE)
           if guid_pattern.match(client_secret):
-              print("::error::clientSecret appears to be a GUID (Secret ID). You must use the Secret VALUE, not the ID!")
+              print("::error::AZURE_CLIENT_SECRET appears to be a GUID (Secret ID). You must use the Secret VALUE, not the ID!")
               print("::error::Fix: Azure Portal → App registrations → Certificates & secrets → Copy the VALUE (not the ID)")
               sys.exit(1)
           
-          print("✓ Azure credentials format is valid")
+          # Construir JSON
+          creds_json = {
+              "clientId": client_id,
+              "clientSecret": client_secret,
+              "subscriptionId": subscription_id,
+              "tenantId": tenant_id
+          }
+          
+          # Salvar em arquivo para uso posterior
+          with open('$GITHUB_ENV', 'a') as f:
+              f.write(f'AZURE_CREDENTIALS={json.dumps(creds_json)}\n')
+          
+          print("✓ Azure credentials built from repository secrets")
           EOF
         env:
-          AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
 
       - name: Log in to Azure
         uses: azure/login@v2
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          creds: ${{ env.AZURE_CREDENTIALS }}
         continue-on-error: false
 
       - name: Set up kubectl
@@ -197,12 +238,31 @@ jobs:
           kubectl label namespace ${{ env.NAMESPACE }} name=${{ env.NAMESPACE }} --overwrite
         continue-on-error: false
 
+      - name: Get Key Vault URI from Terraform (if available)
+        id: keyvault
+        run: |
+          # Tenta obter o Key Vault URI do Terraform output
+          # Se não estiver disponível, usa um valor padrão que deve ser configurado manualmente
+          KEY_VAULT_URI="${{ secrets.AZURE_KEY_VAULT_URI }}"
+          if [ -z "$KEY_VAULT_URI" ]; then
+            echo "::warning::AZURE_KEY_VAULT_URI secret not found. Key Vault will be disabled. Configure it in GitHub Secrets."
+            echo "uri=" >> $GITHUB_OUTPUT
+            echo "enabled=false" >> $GITHUB_OUTPUT
+          else
+            echo "uri=$KEY_VAULT_URI" >> $GITHUB_OUTPUT
+            echo "enabled=true" >> $GITHUB_OUTPUT
+          fi
+        continue-on-error: true
+
       - name: Deploy with Helm
         run: |
           helm upgrade --install pagamento ./helm/pagamento \
             --namespace ${{ env.NAMESPACE }} \
             --set image.repository=${{ env.REGISTRY }}/${{ env.APP_IMAGE_NAME }} \
             --set image.tag=${{ steps.version.outputs.version }} \
+            --set env.AZURE_KEY_VAULT_URL="${{ steps.keyvault.outputs.uri }}" \
+            --set env.AZURE_KEY_VAULT_ENABLED="${{ steps.keyvault.outputs.enabled }}" \
+            --set env.ENVIRONMENT="prod" \
             --wait \
             --timeout 5m
         continue-on-error: false

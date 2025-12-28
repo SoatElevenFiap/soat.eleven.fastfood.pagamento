@@ -1,7 +1,8 @@
 namespace:
   name: fastfood
   create: true
-  labels: {}
+  labels:
+    name: fastfood  # Necessário para NetworkPolicy funcionar com Azure Network Policy
 
 replicaCount: 1
 
@@ -80,6 +81,11 @@ env:
   UVICORN_HOST: "0.0.0.0"
   UVICORN_PORT: "8000"
   UVICORN_LOG_LEVEL: "info"
+  # Azure Key Vault configuration
+  # IMPORTANTE: Configure estes valores via --set no deploy ou atualize aqui
+  # AZURE_KEY_VAULT_URL: "https://kv-ms-prod-001-filipe.vault.azure.net/"
+  # AZURE_KEY_VAULT_ENABLED: "true"
+  # ENVIRONMENT: "prod"
 
 networkPolicy:
   enabled: true
