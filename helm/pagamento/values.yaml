@@ -7,7 +7,7 @@ namespace:
 replicaCount: 1
 
 image:
-  repository: acrfastfoodpostech.azurecr.io/fastfood/app
+  repository: acrfastfoodpostech029.azurecr.io/fastfood/app
   pullPolicy: IfNotPresent
   tag: "latest"
 
