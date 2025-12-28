@@ -117,9 +117,49 @@ jobs:
           ACR_NAME=$(echo "${{ env.REGISTRY }}" | sed 's/\.azurecr\.io//')
           echo "name=${ACR_NAME}" >> $GITHUB_OUTPUT
 
+      - name: Verify ACR exists and permissions
+        run: |
+          ACR_NAME="${{ steps.acr.outputs.name }}"
+          echo "Verifying ACR: ${ACR_NAME}"
+          
+          # Verificar se o ACR existe
+          if ! az acr show --name "${ACR_NAME}" --resource-group "${{ env.AKS_RESOURCE_GROUP }}" > /dev/null 2>&1; then
+            echo "::error::ACR '${ACR_NAME}' not found in resource group '${{ env.AKS_RESOURCE_GROUP }}'"
+            echo "Available ACRs in subscription:"
+            az acr list --query "[].{Name:name, ResourceGroup:resourceGroup}" -o table || true
+            exit 1
+          fi
+          
+          # Verificar permissões do Service Principal
+          CLIENT_ID="${{ secrets.AZURE_CLIENT_ID }}"
+          ACR_ID=$(az acr show --name "${ACR_NAME}" --resource-group "${{ env.AKS_RESOURCE_GROUP }}" --query id -o tsv)
+          
+          echo "Checking permissions for Service Principal: ${CLIENT_ID:0:8}..."
+          ROLE_ASSIGNMENTS=$(az role assignment list --assignee "${CLIENT_ID}" --scope "${ACR_ID}" --query "[].{Role:roleDefinitionName}" -o tsv 2>/dev/null || echo "")
+          
+          if [ -z "${ROLE_ASSIGNMENTS}" ] || ! echo "${ROLE_ASSIGNMENTS}" | grep -qE "AcrPush|Contributor|Owner"; then
+            echo "::warning::Service Principal may not have AcrPush permission on ACR"
+            echo "Current role assignments: ${ROLE_ASSIGNMENTS:-none}"
+            echo "To fix, run:"
+            echo "  az role assignment create --assignee ${CLIENT_ID} --role AcrPush --scope ${ACR_ID}"
+          else
+            echo "✓ Service Principal has required permissions"
+          fi
+
       - name: Log in to Azure Container Registry
         run: |
-          az acr login --name ${{ steps.acr.outputs.name }}
+          ACR_NAME="${{ steps.acr.outputs.name }}"
+          # Usar login com Service Principal (já autenticado via az login)
+          az acr login --name "${ACR_NAME}"
+          
+          # Verificar se o login funcionou tentando listar repositórios
+          if ! az acr repository list --name "${ACR_NAME}" > /dev/null 2>&1; then
+            echo "::error::Failed to authenticate with ACR. Check Service Principal permissions."
+            echo "::error::Ensure the Service Principal has 'AcrPush' role on the ACR"
+            exit 1
+          fi
+          
+          echo "✓ Successfully authenticated with ACR"
 
       - name: Extract version
         id: version
