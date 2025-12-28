@@ -1,0 +1,7 @@
+apiVersion: v2
+name: pagamento
+description: Helm chart for Payment Microservice (soat.eleven.fastfood.pagamento)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+

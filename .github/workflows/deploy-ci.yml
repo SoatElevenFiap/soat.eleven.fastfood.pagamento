@@ -14,8 +14,8 @@ env:
   PYTHON_VERSION: '3.12'
   REGISTRY: acrfastfoodpostech.azurecr.io
   APP_IMAGE_NAME: fastfood/app
-  AKS_RESOURCE_GROUP: rg-fastfood-postech
-  AKS_CLUSTER_NAME: aks-fastfood-postech
+  AKS_RESOURCE_GROUP: rg-ms-prod-001
+  AKS_CLUSTER_NAME: aks-ms-prod-001
   NAMESPACE: fastfood
   DEPLOYMENT_NAME: soat.eleven.fastfood.pagamento
 
@@ -98,6 +98,9 @@ jobs:
       - name: Set up kubectl
         uses: azure/setup-kubectl@v3
 
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+
       - name: Get AKS credentials
         run: |
           az aks get-credentials \
@@ -113,37 +116,33 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "image=${{ env.REGISTRY }}/${{ env.APP_IMAGE_NAME }}:$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Create namespace if not exists
+      - name: Create namespace with labels if not exists
         run: |
           kubectl create namespace ${{ env.NAMESPACE }} --dry-run=client -o yaml | kubectl apply -f -
+          kubectl label namespace ${{ env.NAMESPACE }} name=${{ env.NAMESPACE }} --overwrite
         continue-on-error: false
 
-      - name: Update deployment.yaml with ACR image
+      - name: Deploy with Helm
         run: |
-          IMAGE="${{ steps.version.outputs.image }}"
-          sed "s|\${IMAGE_NAME}|${IMAGE}|g" .azuredevops/deployment.yaml > deployment-processed.yaml
-        continue-on-error: false
-
-      - name: Apply deployment and service
-        run: |
-          kubectl apply -f deployment-processed.yaml -n ${{ env.NAMESPACE }}
-        continue-on-error: false
-
-      - name: Wait for rollout
-        run: |
-          kubectl rollout status deployment/${{ env.DEPLOYMENT_NAME }} \
-            -n ${{ env.NAMESPACE }} \
-            --timeout=5m
+          helm upgrade --install pagamento ./helm/pagamento \
+            --namespace ${{ env.NAMESPACE }} \
+            --set image.repository=${{ env.REGISTRY }}/${{ env.APP_IMAGE_NAME }} \
+            --set image.tag=${{ steps.version.outputs.version }} \
+            --wait \
+            --timeout 5m
         continue-on-error: false
 
       - name: Verify deployment
         run: |
+          echo "=== Helm Release Status ==="
+          helm status pagamento --namespace ${{ env.NAMESPACE }}
+          echo ""
           echo "=== Deployment Status ==="
-          kubectl get deployment ${{ env.DEPLOYMENT_NAME }} -n ${{ env.NAMESPACE }}
+          kubectl get deployment pagamento -n ${{ env.NAMESPACE }} || kubectl get deployment -l app.kubernetes.io/name=pagamento -n ${{ env.NAMESPACE }}
           echo ""
           echo "=== Service Status ==="
-          kubectl get service ${{ env.DEPLOYMENT_NAME }} -n ${{ env.NAMESPACE }}
+          kubectl get service pagamento -n ${{ env.NAMESPACE }}
           echo ""
           echo "=== Pods Status ==="
-          kubectl get pods -l app=${{ env.DEPLOYMENT_NAME }} -n ${{ env.NAMESPACE }}
+          kubectl get pods -l app.kubernetes.io/name=pagamento,app.kubernetes.io/instance=pagamento -n ${{ env.NAMESPACE }}
         continue-on-error: false
