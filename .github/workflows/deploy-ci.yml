@@ -298,8 +298,21 @@ jobs:
 
       - name: Create namespace with labels if not exists
         run: |
+          # Criar namespace se não existir
           kubectl create namespace ${{ env.NAMESPACE }} --dry-run=client -o yaml | kubectl apply -f -
+          
+          # Adicionar labels necessários
           kubectl label namespace ${{ env.NAMESPACE }} name=${{ env.NAMESPACE }} --overwrite
+          
+          # Adicionar labels e annotations do Helm para permitir gerenciamento
+          kubectl annotate namespace ${{ env.NAMESPACE }} \
+            meta.helm.sh/release-name=pagamento \
+            meta.helm.sh/release-namespace=${{ env.NAMESPACE }} \
+            --overwrite
+          
+          kubectl label namespace ${{ env.NAMESPACE }} \
+            app.kubernetes.io/managed-by=Helm \
+            --overwrite
         continue-on-error: false
 
       - name: Get Key Vault URI from Terraform (if available)

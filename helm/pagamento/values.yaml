@@ -1,6 +1,6 @@
 namespace:
   name: fastfood
-  create: true
+  create: false  # Namespace é criado pelo workflow do GitHub Actions
   labels:
     name: fastfood  # Necessário para NetworkPolicy funcionar com Azure Network Policy
 
