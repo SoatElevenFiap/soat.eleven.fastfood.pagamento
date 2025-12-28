@@ -63,6 +63,5 @@ jobs:
             -Dsonar.python.version=${{ env.PYTHON_VERSION }}
             -Dsonar.coverage.exclusions=**/tests/**,**/__pycache__/**,**/main.py,**/providers/**,**/adapters/**,**/enums/**,**/dtos/**,**/exceptions/**
             -Dsonar.exclusions=**/tests/**,**/__pycache__/**
-            -Dsonar.python.coverage.reportPaths=coverage.xml
             -Dsonar.qualitygate.wait=true
 
