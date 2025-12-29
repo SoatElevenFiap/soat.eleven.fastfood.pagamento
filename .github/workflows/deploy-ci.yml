@@ -3,7 +3,7 @@ name: CI/CD Pipeline
 on:
   push:
     branches:
-      - main
+      - cd/teste
   workflow_dispatch:
 
 concurrency:
@@ -12,10 +12,10 @@ concurrency:
 
 env:
   PYTHON_VERSION: '3.12'
-  REGISTRY: acrfastfoodpostech029.azurecr.io
+  REGISTRY: acrfastfoodpostech.azurecr.io
   APP_IMAGE_NAME: fastfood/app
-  AKS_RESOURCE_GROUP: rg-ms-prod-001
-  AKS_CLUSTER_NAME: aks-ms-prod-001
+  AKS_RESOURCE_GROUP: rg-fastfood-postech
+  AKS_CLUSTER_NAME: aks-fastfood-postech
   NAMESPACE: fastfood
   DEPLOYMENT_NAME: soat.eleven.fastfood.pagamento
 
@@ -43,21 +43,21 @@ jobs:
           import sys
           
           # Usar repository secrets (têm prioridade sobre organization secrets)
-          client_id = os.environ.get('AZURE_CLIENT_ID', '')
-          client_secret = os.environ.get('AZURE_CLIENT_SECRET', '')
-          subscription_id = os.environ.get('AZURE_SUBSCRIPTION_ID', '')
-          tenant_id = os.environ.get('AZURE_TENANT_ID', '')
+          client_id = os.environ.get('AZURE_CLIENT_ID_KAUAN', '')
+          client_secret = os.environ.get('AZURE_CLIENT_SECRET_KAUAN', '')
+          subscription_id = os.environ.get('AZURE_SUBSCRIPTION_ID_KAUAN', '')
+          tenant_id = os.environ.get('AZURE_TENANT_ID_KAUAN', '')
           
           # Verificar se todos os campos estão presentes
           missing = []
           if not client_id:
-              missing.append('AZURE_CLIENT_ID')
+              missing.append('AZURE_CLIENT_ID_KAUAN')
           if not client_secret:
-              missing.append('AZURE_CLIENT_SECRET')
+              missing.append('AZURE_CLIENT_SECRET_KAUAN')
           if not subscription_id:
-              missing.append('AZURE_SUBSCRIPTION_ID')
+              missing.append('AZURE_SUBSCRIPTION_ID_KAUAN')
           if not tenant_id:
-              missing.append('AZURE_TENANT_ID')
+              missing.append('AZURE_TENANT_ID_KAUAN')
           
           if missing:
               print(f"::error::Missing repository secrets: {', '.join(missing)}")
@@ -67,17 +67,17 @@ jobs:
           # Verificar se clientSecret é um GUID (se for, é o ID, não o VALUE)
           guid_pattern = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', re.IGNORECASE)
           if guid_pattern.match(client_secret):
-              print("::error::AZURE_CLIENT_SECRET appears to be a GUID (Secret ID). You must use the Secret VALUE, not the ID!")
+              print("::error::AZURE_CLIENT_SECRET_KAUAN appears to be a GUID (Secret ID). You must use the Secret VALUE, not the ID!")
               print("::error::Fix: Azure Portal → App registrations → Certificates & secrets → Copy the VALUE (not the ID)")
               sys.exit(1)
           
           print("✓ Azure credentials validated")
           EOF
         env:
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID_KAUAN: ${{ secrets.AZURE_CLIENT_ID_KAUAN }}
+          AZURE_CLIENT_SECRET_KAUAN: ${{ secrets.AZURE_CLIENT_SECRET_KAUAN }}
+          AZURE_SUBSCRIPTION_ID_KAUAN: ${{ secrets.AZURE_SUBSCRIPTION_ID_KAUAN }}
+          AZURE_TENANT_ID_KAUAN: ${{ secrets.AZURE_TENANT_ID_KAUAN }}
 
       - name: Build Azure credentials JSON
         id: azure_creds
@@ -88,10 +88,10 @@ jobs:
           
           # Construir JSON no formato esperado pelo azure/login@v2
           creds_json = {
-              "clientId": os.environ.get('AZURE_CLIENT_ID', ''),
-              "clientSecret": os.environ.get('AZURE_CLIENT_SECRET', ''),
-              "subscriptionId": os.environ.get('AZURE_SUBSCRIPTION_ID', ''),
-              "tenantId": os.environ.get('AZURE_TENANT_ID', '')
+              "clientId": os.environ.get('AZURE_CLIENT_ID_KAUAN', ''),
+              "clientSecret": os.environ.get('AZURE_CLIENT_SECRET_KAUAN', ''),
+              "subscriptionId": os.environ.get('AZURE_SUBSCRIPTION_ID_KAUAN', ''),
+              "tenantId": os.environ.get('AZURE_TENANT_ID_KAUAN', '')
           }
           
           # Salvar como output do step usando GITHUB_OUTPUT
@@ -100,10 +100,10 @@ jobs:
               f.write(f'creds<<EOF\n{json_str}\nEOF\n')
           EOF
         env:
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID_KAUAN: ${{ secrets.AZURE_CLIENT_ID_KAUAN }}
+          AZURE_CLIENT_SECRET_KAUAN: ${{ secrets.AZURE_CLIENT_SECRET_KAUAN }}
+          AZURE_SUBSCRIPTION_ID_KAUAN: ${{ secrets.AZURE_SUBSCRIPTION_ID_KAUAN }}
+          AZURE_TENANT_ID_KAUAN: ${{ secrets.AZURE_TENANT_ID_KAUAN }}
 
       - name: Log in to Azure
         uses: azure/login@v2
@@ -132,7 +132,7 @@ jobs:
           fi
           
           # Obter IDs
-          CLIENT_ID="${{ secrets.AZURE_CLIENT_ID }}"
+          CLIENT_ID="${{ secrets.AZURE_CLIENT_ID_KAUAN }}"
           ACR_ID=$(az acr show --name "${ACR_NAME}" --resource-group "${{ env.AKS_RESOURCE_GROUP }}" --query id -o tsv)
           
           echo "Checking permissions for Service Principal: ${CLIENT_ID:0:8}..."
@@ -163,7 +163,7 @@ jobs:
             echo "::error::The Service Principal needs 'AcrPush' role on the ACR"
             echo ""
             echo "Run this command to fix:"
-            CLIENT_ID="${{ secrets.AZURE_CLIENT_ID }}"
+            CLIENT_ID="${{ secrets.AZURE_CLIENT_ID_KAUAN }}"
             ACR_ID=$(az acr show --name "${ACR_NAME}" --resource-group "${{ env.AKS_RESOURCE_GROUP }}" --query id -o tsv)
             echo "az role assignment create --assignee ${CLIENT_ID} --role AcrPush --scope ${ACR_ID}"
             exit 1
@@ -224,21 +224,21 @@ jobs:
           import sys
           
           # Usar repository secrets (têm prioridade sobre organization secrets)
-          client_id = os.environ.get('AZURE_CLIENT_ID', '')
-          client_secret = os.environ.get('AZURE_CLIENT_SECRET', '')
-          subscription_id = os.environ.get('AZURE_SUBSCRIPTION_ID', '')
-          tenant_id = os.environ.get('AZURE_TENANT_ID', '')
+          client_id = os.environ.get('AZURE_CLIENT_ID_KAUAN', '')
+          client_secret = os.environ.get('AZURE_CLIENT_SECRET_KAUAN', '')
+          subscription_id = os.environ.get('AZURE_SUBSCRIPTION_ID_KAUAN', '')
+          tenant_id = os.environ.get('AZURE_TENANT_ID_KAUAN', '')
           
           # Verificar se todos os campos estão presentes
           missing = []
           if not client_id:
-              missing.append('AZURE_CLIENT_ID')
+              missing.append('AZURE_CLIENT_ID_KAUAN')
           if not client_secret:
-              missing.append('AZURE_CLIENT_SECRET')
+              missing.append('AZURE_CLIENT_SECRET_KAUAN')
           if not subscription_id:
-              missing.append('AZURE_SUBSCRIPTION_ID')
+              missing.append('AZURE_SUBSCRIPTION_ID_KAUAN')
           if not tenant_id:
-              missing.append('AZURE_TENANT_ID')
+              missing.append('AZURE_TENANT_ID_KAUAN')
           
           if missing:
               print(f"::error::Missing repository secrets: {', '.join(missing)}")
@@ -248,17 +248,17 @@ jobs:
           # Verificar se clientSecret é um GUID (se for, é o ID, não o VALUE)
           guid_pattern = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', re.IGNORECASE)
           if guid_pattern.match(client_secret):
-              print("::error::AZURE_CLIENT_SECRET appears to be a GUID (Secret ID). You must use the Secret VALUE, not the ID!")
+              print("::error::AZURE_CLIENT_SECRET_KAUAN appears to be a GUID (Secret ID). You must use the Secret VALUE, not the ID!")
               print("::error::Fix: Azure Portal → App registrations → Certificates & secrets → Copy the VALUE (not the ID)")
               sys.exit(1)
           
           print("✓ Azure credentials validated")
           EOF
         env:
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID_KAUAN: ${{ secrets.AZURE_CLIENT_ID_KAUAN }}
+          AZURE_CLIENT_SECRET_KAUAN: ${{ secrets.AZURE_CLIENT_SECRET_KAUAN }}
+          AZURE_SUBSCRIPTION_ID_KAUAN: ${{ secrets.AZURE_SUBSCRIPTION_ID_KAUAN }}
+          AZURE_TENANT_ID_KAUAN: ${{ secrets.AZURE_TENANT_ID_KAUAN }}
 
       - name: Build Azure credentials JSON
         id: azure_creds
@@ -269,10 +269,10 @@ jobs:
           
           # Construir JSON no formato esperado pelo azure/login@v2
           creds_json = {
-              "clientId": os.environ.get('AZURE_CLIENT_ID', ''),
-              "clientSecret": os.environ.get('AZURE_CLIENT_SECRET', ''),
-              "subscriptionId": os.environ.get('AZURE_SUBSCRIPTION_ID', ''),
-              "tenantId": os.environ.get('AZURE_TENANT_ID', '')
+              "clientId": os.environ.get('AZURE_CLIENT_ID_KAUAN', ''),
+              "clientSecret": os.environ.get('AZURE_CLIENT_SECRET_KAUAN', ''),
+              "subscriptionId": os.environ.get('AZURE_SUBSCRIPTION_ID_KAUAN', ''),
+              "tenantId": os.environ.get('AZURE_TENANT_ID_KAUAN', '')
           }
           
           # Salvar como output do step usando GITHUB_OUTPUT
@@ -281,10 +281,10 @@ jobs:
               f.write(f'creds<<EOF\n{json_str}\nEOF\n')
           EOF
         env:
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID_KAUAN: ${{ secrets.AZURE_CLIENT_ID_KAUAN }}
+          AZURE_CLIENT_SECRET_KAUAN: ${{ secrets.AZURE_CLIENT_SECRET_KAUAN }}
+          AZURE_SUBSCRIPTION_ID_KAUAN: ${{ secrets.AZURE_SUBSCRIPTION_ID_KAUAN }}
+          AZURE_TENANT_ID_KAUAN: ${{ secrets.AZURE_TENANT_ID_KAUAN }}
 
       - name: Log in to Azure
         uses: azure/login@v2
@@ -315,7 +315,7 @@ jobs:
 
       - name: Configure AKS permissions on ACR
         run: |
-          ACR_NAME="acrfastfoodpostech029"
+          ACR_NAME="acrfastfoodpostech"
           ACR_ID=$(az acr show --name "${ACR_NAME}" --resource-group "${{ env.AKS_RESOURCE_GROUP }}" --query id -o tsv)
           
           # Obter Managed Identity do AKS
@@ -378,7 +378,7 @@ jobs:
       - name: Verify image exists in ACR and get available tag
         id: image_check
         run: |
-          ACR_NAME="acrfastfoodpostech029"
+          ACR_NAME="acrfastfoodpostech"
           IMAGE_TAG="${{ steps.version.outputs.version }}"
           IMAGE_REPO="fastfood/app"
           
