@@ -1,8 +1,9 @@
-name: CI/CD Pipeline
+name: CI/CD Pipeline Definitivo
 
 on:
   push:
     branches:
+      - main
       - cd/teste
   workflow_dispatch:
 
@@ -19,78 +20,83 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write 
+      id-token: write
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 1. Login na Azure e ACR
-      - name: Log in to Azure (OIDC)
+      # 1. Validação de Credenciais (Prevenção de erro de GUID)
+      - name: Validate Azure credentials
+        run: |
+          python3 << 'EOF'
+          import re, os, sys
+          client_secret = os.environ.get('AZURE_CLIENT_SECRET', '')
+          guid_pattern = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', re.IGNORECASE)
+          if guid_pattern.match(client_secret):
+              print("::error::AZURE_CLIENT_SECRET_KAUAN aparece como um ID. Use o VALUE do Secret!")
+              sys.exit(1)
+          print("✓ Credenciais validadas")
+          EOF
+        env:
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET_KAUAN }}
+
+      # 2. Login na Azure usando seus segredos _KAUAN
+      - name: Log in to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID_KAUAN }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID_KAUAN }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID_KAUAN }}
+          creds: '{"clientId":"${{ secrets.AZURE_CLIENT_ID_KAUAN }}","clientSecret":"${{ secrets.AZURE_CLIENT_SECRET_KAUAN }}","subscriptionId":"${{ secrets.AZURE_SUBSCRIPTION_ID_KAUAN }}","tenantId":"${{ secrets.AZURE_TENANT_ID_KAUAN }}"}'
 
+      # 3. Build e Push da Imagem
       - name: Log in to ACR
         run: az acr login --name acrfastfoodpostech
 
-      # 2. Extração da Versão (Tag Única)
       - name: Extract version
         id: version
         run: |
           VERSION=$(echo ${{ github.sha }} | cut -c1-7)
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      # 3. Build e Push da Imagem
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true  
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.APP_IMAGE_NAME }}:${{ env.VERSION }}
-            ${{ env.REGISTRY }}/${{ env.APP_IMAGE_NAME }}:latest
-          provenance: false
-          format: docker
+      - name: Build and Push Docker image
+        run: |
+          docker build -t ${{ env.REGISTRY }}/${{ env.APP_IMAGE_NAME }}:${{ steps.version.outputs.version }} .
+          docker tag ${{ env.REGISTRY }}/${{ env.APP_IMAGE_NAME }}:${{ steps.version.outputs.version }} ${{ env.REGISTRY }}/${{ env.APP_IMAGE_NAME }}:latest
+          docker push ${{ env.REGISTRY }}/${{ env.APP_IMAGE_NAME }}:${{ steps.version.outputs.version }}
+          docker push ${{ env.REGISTRY }}/${{ env.APP_IMAGE_NAME }}:latest
 
       # 4. Configuração do Kubernetes
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+
       - name: Get AKS credentials
-        run: |
-          az aks get-credentials --resource-group ${{ env.AKS_RESOURCE_GROUP }} --name ${{ env.AKS_CLUSTER_NAME }} --overwrite-existing
-      
-      - name: Create Namespace
+        run: az aks get-credentials --resource-group ${{ env.AKS_RESOURCE_GROUP }} --name ${{ env.AKS_CLUSTER_NAME }} --overwrite-existing
+
+      - name: Create namespace
         run: kubectl create namespace ${{ env.NAMESPACE }} --dry-run=client -o yaml | kubectl apply -f -
 
-      # 5. Garantir Autenticação do AKS no ACR
-      - name: Create ACR Secret
-        run: |
-          kubectl create secret docker-registry acr-secret \
-            --docker-server=${{ env.REGISTRY }} \
-            --docker-username=$(az acr credential show --name acrfastfoodpostech --query "username" -o tsv) \
-            --docker-password=$(az acr credential show --name acrfastfoodpostech --query "passwords[0].value" -o tsv) \
-            --namespace ${{ env.NAMESPACE }} \
-            --dry-run=client -o yaml | kubectl apply -f -
-
+      # 5. Criação da Secret no K8s usando as variáveis _KAUAN
+      # O deployment.yaml vai ler daqui através do envFrom
       - name: Create Azure Credentials Secret
         run: |
           kubectl create secret generic azure-pagamento-creds \
-            --from-literal=AZURE_CLIENT_ID_KAUAN=${{ secrets.AZURE_CLIENT_ID_KAUAN }} \
-            --from-literal=AZURE_CLIENT_SECRET_KAUAN=${{ secrets.AZURE_CLIENT_SECRET_KAUAN }} \
-            --from-literal=AZURE_TENANT_ID_KAUAN=${{ secrets.AZURE_TENANT_ID_KAUAN }} \
+            --from-literal=AZURE_CLIENT_ID=${{ secrets.AZURE_CLIENT_ID_KAUAN }} \
+            --from-literal=AZURE_CLIENT_SECRET=${{ secrets.AZURE_CLIENT_SECRET_KAUAN }} \
+            --from-literal=AZURE_TENANT_ID=${{ secrets.AZURE_TENANT_ID_KAUAN }} \
             --namespace ${{ env.NAMESPACE }} \
             --dry-run=client -o yaml | kubectl apply -f -
 
-      # 6. Deploy com Helm (Forçando a nova TAG e a Secret)
+      # 6. Deploy com Helm
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+
       - name: Deploy with Helm
         run: |
           helm upgrade --install pagamento ./helm/pagamento \
             --namespace ${{ env.NAMESPACE }} \
             --set image.repository=${{ env.REGISTRY }}/${{ env.APP_IMAGE_NAME }} \
-            --set image.tag=${{ env.VERSION }} \
-            --set "imagePullSecrets[0].name=acr-secret" \
-            --atomic \
-            --cleanup-on-fail \
+            --set image.tag=${{ steps.version.outputs.version }} \
+            --set env.AZURE_KEY_VAULT_URL="${{ secrets.AZURE_KEY_VAULT_URI_KAUAN }}" \
+            --set env.AZURE_KEY_VAULT_ENABLED="true" \
+            --set env.ENVIRONMENT="prod" \
+            --wait \
             --timeout 5m
