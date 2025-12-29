@@ -74,6 +74,15 @@ jobs:
             --namespace ${{ env.NAMESPACE }} \
             --dry-run=client -o yaml | kubectl apply -f -
 
+      - name: Create Azure Credentials Secret
+        run: |
+          kubectl create secret generic azure-pagamento-creds \
+            --from-literal=AZURE_CLIENT_ID_KAUAN=${{ secrets.AZURE_CLIENT_ID_KAUAN }} \
+            --from-literal=AZURE_CLIENT_SECRET_KAUAN=${{ secrets.AZURE_CLIENT_SECRET_KAUAN }} \
+            --from-literal=AZURE_TENANT_ID_KAUAN=${{ secrets.AZURE_TENANT_ID_KAUAN }} \
+            --namespace ${{ env.NAMESPACE }} \
+            --dry-run=client -o yaml | kubectl apply -f -
+
       # 6. Deploy com Helm (Forçando a nova TAG e a Secret)
       - name: Deploy with Helm
         run: |

@@ -83,9 +83,9 @@ env:
   UVICORN_LOG_LEVEL: "info"
   # Azure Key Vault configuration
   # IMPORTANTE: Configure estes valores via --set no deploy ou atualize aqui
-  # AZURE_KEY_VAULT_URL: "https://kv-ms-prod-001-filipe.vault.azure.net/"
-  # AZURE_KEY_VAULT_ENABLED: "true"
-  # ENVIRONMENT: "prod"
+  AZURE_KEY_VAULT_URL: ""
+  AZURE_KEY_VAULT_ENABLED: ""
+  ENVIRONMENT: ""
 
 networkPolicy:
   enabled: true
