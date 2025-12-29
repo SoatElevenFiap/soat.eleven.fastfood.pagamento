@@ -89,10 +89,13 @@ jobs:
 
       - name: Deploy with Helm
         run: |
+          VERSION=${{ needs.build-and-push-acr.outputs.app_version }}
+          
           helm upgrade --install pagamento ./helm/pagamento \
             --namespace ${{ env.NAMESPACE }} \
             --set image.repository=${{ env.REGISTRY }}/${{ env.APP_IMAGE_NAME }} \
-            --set image.tag=${{ steps.version.outputs.version }} \
+            --set image.tag=$VERSION \
+            --set "imagePullSecrets[0].name=acr-secret" \
             --atomic \
             --cleanup-on-fail \
             --timeout 5m
