@@ -46,10 +46,12 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          push: true
+          push: true  
           tags: |
-            ${{ steps.version.outputs.tag }}
+            ${{ env.REGISTRY }}/${{ env.APP_IMAGE_NAME }}:${{ steps.version.outputs.version }}
             ${{ env.REGISTRY }}/${{ env.APP_IMAGE_NAME }}:latest
+          provenance: false
+          format: docker
 
   deploy-aks:
     name: Deploy to AKS
