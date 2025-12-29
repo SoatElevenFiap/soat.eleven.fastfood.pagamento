@@ -14,8 +14,8 @@ env:
   NAMESPACE: fastfood
 
 jobs:
-  build-and-push-acr:
-    name: Build and Push to ACR
+  build-push-deploy:
+    name: Build, Push and Deploy
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -25,6 +25,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # 1. Login na Azure e ACR
       - name: Log in to Azure (OIDC)
         uses: azure/login@v2
         with:
@@ -35,66 +36,51 @@ jobs:
       - name: Log in to ACR
         run: az acr login --name acrfastfoodpostech
 
+      # 2. Extração da Versão (Tag Única)
       - name: Extract version
         id: version
         run: |
           VERSION=$(echo ${{ github.sha }} | cut -c1-7)
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "tag=${{ env.REGISTRY }}/${{ env.APP_IMAGE_NAME }}:$VERSION" >> $GITHUB_OUTPUT
 
+      # 3. Build e Push da Imagem
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true  
           tags: |
-            ${{ env.REGISTRY }}/${{ env.APP_IMAGE_NAME }}:${{ steps.version.outputs.version }}
+            ${{ env.REGISTRY }}/${{ env.APP_IMAGE_NAME }}:${{ env.VERSION }}
             ${{ env.REGISTRY }}/${{ env.APP_IMAGE_NAME }}:latest
           provenance: false
           format: docker
 
-  deploy-aks:
-    name: Deploy to AKS
-    needs: [build-and-push-acr]
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Log in to Azure (OIDC)
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID_KAUAN }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID_KAUAN }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID_KAUAN }}
-
+      # 4. Configuração do Kubernetes
       - name: Get AKS credentials
         run: |
           az aks get-credentials --resource-group ${{ env.AKS_RESOURCE_GROUP }} --name ${{ env.AKS_CLUSTER_NAME }} --overwrite-existing
       
       - name: Create Namespace
-        run: kubectl create namespace $NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
+        run: kubectl create namespace ${{ env.NAMESPACE }} --dry-run=client -o yaml | kubectl apply -f -
 
+      # 5. Garantir Autenticação do AKS no ACR
       - name: Create ACR Secret
         run: |
           kubectl create secret docker-registry acr-secret \
-            --docker-server=$REGISTRY \
+            --docker-server=${{ env.REGISTRY }} \
             --docker-username=$(az acr credential show --name acrfastfoodpostech --query "username" -o tsv) \
             --docker-password=$(az acr credential show --name acrfastfoodpostech --query "passwords[0].value" -o tsv) \
-            --namespace $NAMESPACE \
+            --namespace ${{ env.NAMESPACE }} \
             --dry-run=client -o yaml | kubectl apply -f -
 
+      # 6. Deploy com Helm (Forçando a nova TAG e a Secret)
       - name: Deploy with Helm
         run: |
-          VERSION=${{ needs.build-and-push-acr.outputs.app_version }}
-          
           helm upgrade --install pagamento ./helm/pagamento \
             --namespace ${{ env.NAMESPACE }} \
             --set image.repository=${{ env.REGISTRY }}/${{ env.APP_IMAGE_NAME }} \
-            --set image.tag=$VERSION \
+            --set image.tag=${{ env.VERSION }} \
             --set "imagePullSecrets[0].name=acr-secret" \
             --atomic \
             --cleanup-on-fail \
