@@ -8,7 +8,7 @@ on:
 
 env:
   REGISTRY: acrfastfoodpostech.azurecr.io
-  APP_IMAGE_NAME: fastfood/pagamento # Alterado para não sobrescrever Users
+  APP_IMAGE_NAME: fastfood/pagamento 
   AKS_RESOURCE_GROUP: rg-fastfood-postech
   AKS_CLUSTER_NAME: aks-fastfood-postech
   NAMESPACE: fastfood
@@ -19,7 +19,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write # Obrigatório para OIDC
+      id-token: write 
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -71,6 +72,18 @@ jobs:
       - name: Get AKS credentials
         run: |
           az aks get-credentials --resource-group ${{ env.AKS_RESOURCE_GROUP }} --name ${{ env.AKS_CLUSTER_NAME }} --overwrite-existing
+      
+      - name: Create Namespace
+        run: kubectl create namespace $NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Create ACR Secret
+        run: |
+          kubectl create secret docker-registry acr-secret \
+            --docker-server=$REGISTRY \
+            --docker-username=$(az acr credential show --name acrfastfoodpostech --query "username" -o tsv) \
+            --docker-password=$(az acr credential show --name acrfastfoodpostech --query "passwords[0].value" -o tsv) \
+            --namespace $NAMESPACE \
+            --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Deploy with Helm
         run: |
